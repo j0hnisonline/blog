@@ -1,0 +1,367 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="cache-control" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  
+  <title>Imagetragick(CVE-2016-3714)执行过程,漏洞分析以及修复方案 | \\Johnis.online\BLOG</title>
+  <meta name="author" content="LonelyRain">
+  
+  <meta name="description" content="##什么是ImageMagick
+ImageMagick是一个免费的创建、编辑、合成图片的软件。它可以读取、转换、写入多种格式的图片。图片切割、颜色替换、各种效果的应用，图片的旋转、组合，文本，直线，多边形，椭圆，曲线，附加到图片伸展旋转。
+##漏洞分析正文
+这次披露的是ImageMagick的一个命令执行漏洞。首先定位到最终漏洞代码执行的地方,老外给出的poc是在一个文件内填充以下字符命名为.mvg格式
+1234push graphic-contextviewbox 0 0 640 480fill &amp;apos;url(https://example.com/image.jpg&amp;quot;ls &amp;quot;-la)&amp;apos;pop graphic-context">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="Imagetragick(CVE-2016-3714)执行过程,漏洞分析以及修复方案"/>
+  <meta property="og:site_name" content="\\Johnis.online\BLOG"/>
+
+  
+    <meta property="og:image" content=""/>
+  
+
+  
+  
+    <link href="/old/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/old/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/responsive.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/google-fonts.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="/old//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/old/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-70812759-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?cb5448498d7169c668b07c2b255d62c1";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+ <body>  
+  <nav id="main-nav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <button type="button" class="navbar-header navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+		<span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+	  <a class="navbar-brand" href="/old/">\\Johnis.online\BLOG</a>
+      <div class="collapse navbar-collapse nav-menu">
+		<ul class="nav navbar-nav">
+		  
+		  <li>
+			<a href="/old/archives" title="All the articles.">
+			  <i class=""></i>Archives
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/categories" title="All the categories.">
+			  <i class=""></i>Categories
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/tags" title="All the tags.">
+			  <i class=""></i>Tags
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/about" title="About me.">
+			  <i class=""></i>About
+			</a>
+		  </li>
+		  
+		</ul>
+      </div>
+    </div> <!-- container -->
+</nav>
+<div class="clearfix"></div>
+
+  <div class="container">
+  	<div class="content">
+    	 
+
+
+	
+		<div class="page-header">
+			<h1> Imagetragick(CVE-2016-3714)执行过程,漏洞分析以及修复方案</h1>
+		</div>
+	
+
+
+
+<div class="row post">
+	<!-- cols -->
+	
+	<div id="top_meta"></div>
+	<div class="col-md-9">
+	
+
+	<!-- content -->
+	<div class="mypage">		
+	  		
+
+	  <p>##什么是ImageMagick</p>
+<p>ImageMagick是一个免费的创建、编辑、合成图片的软件。它可以读取、转换、写入多种格式的图片。图片切割、颜色替换、各种效果的应用，图片的旋转、组合，文本，直线，多边形，椭圆，曲线，附加到图片伸展旋转。</p>
+<p>##漏洞分析正文</p>
+<p>这次披露的是ImageMagick的一个命令执行漏洞。首先定位到最终漏洞代码执行的地方,老外给出的poc是在一个文件内填充以下字符命名为<code>.mvg</code>格式</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">push graphic-context</div><div class="line">viewbox 0 0 640 480</div><div class="line">fill &apos;url(https://example.com/image.jpg&quot;ls &quot;-la)&apos;</div><div class="line">pop graphic-context</div></pre></td></tr></table></figure>
+<a id="more"></a>
+<p>我以POC为一个切入点,分析POC的执行过程。</p>
+<p><img src="/old/2017/10/10/Imagetragick/351343864.png" alt="imagetragic_2.png"><br>首先从入口函数CovertMain()开始,在第81行MagickCommandGenesis()的第二个参数传入了ConvertImageCommand这个变量,这个变量是一个函数指针,指向了ConvertImageCommand()的函数首地址。所以MagickCommandGenesis()实现了函数的动态调用(非常好的写法)。</p>
+<p>文件:wand/delegate.c:417行</p>
+<p><img src="/old/2017/10/10/Imagetragick/3197429134.png" alt="imagetragic_3.png"><br>的函数ExternalDelegateCommand()中调用了system()函数，执行了我们注入的命令。</p>
+<p>整个执行流程是</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ConvertMain() -&gt; MagickCommandGenesis() -&gt; ConvertImageCommand() -&gt; ReadImages() -&gt; ReadImage() -&gt; ReadMVGImage() -&gt; DrawImage() -&gt;ReadImage() -&gt; InvokeDelegate() -&gt; system()</div></pre></td></tr></table></figure>
+<p>ConvertImageCommand() -&gt; ReadImages() -&gt; ReadImage()这一段主要做了读取判断文件名类型,根据文件类型调用相应的decoder,而调用decoder的方式使用的是delegate模式。</p>
+<p>在coders/mvg.c:67行中</p>
+<p>有一个IsMVG()函数</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">if (LocaleNCompare((const char *) magick,&quot;push graphic-context&quot;,20) == 0)</div><div class="line">return(MagickTrue);</div></pre></td></tr></table></figure>
+<p>这一段读取了文件前20个字符，判断是否是一个MVG格式的图片,</p>
+<p><code>viewbox 0 0 640 480</code>主要由<code>文件:coders/mvg.c:170-204</code>处理。</p>
+<p>处理<code>fill</code>字段就是出问题的地方, 当mvg文件有<code>fill</code>字段代表需要填充外部的图片进当前的图片,<code>pattern_info-&gt;filename</code>就是从`fill｀中解析出来的填充文件的字符串</p>
+<p><img src="/old/2017/10/10/Imagetragick/1794061138.png" alt="imagetragic_4.png"><br><code>magick/delegate.c</code></p>
+<p>中的InvokeDelegate()进行了调用了ExternalDelegateCommand()执行外部命令。</p>
+<p>［题外话：可以看出来这个功能使用了delegate代理模式(对方法的封装)］</p>
+<p>在调用前实际上是对当前种类的请求方法,相应的权限进行了判断</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">if (IsRightsAuthorized(domain,rights,read_info-&gt;magick) == MagickFalse)</div><div class="line">&#123;</div><div class="line">errno=EPERM;</div><div class="line">(void) ThrowMagickException(exception,GetMagickModule(),PolicyError,</div><div class="line">&quot;NotAuthorized&quot;,&quot;`%s&apos;&quot;,read_info-&gt;filename);</div><div class="line">read_info=DestroyImageInfo(read_info);</div><div class="line">return((Image *) NULL);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>并不是像网上说的这个程序一点安全都没有做</p>
+<p>并且在<code>delegate.c</code>中也有对权限的检测。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">if (IsRightsAuthorized(DelegatePolicyDomain,rights,encode) == MagickFalse)</div><div class="line">&#123;</div><div class="line">errno=EPERM;</div><div class="line">(void) ThrowMagickException(exception,GetMagickModule(),PolicyError,</div><div class="line">&quot;NotAuthorized&quot;,&quot;`%s&apos;&quot;,encode);</div><div class="line">return(MagickFalse);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>并且在<code>delegate.c</code>中定义了合法字符的白名单,问题有一部分出在白名单这。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">static char</div><div class="line">whitelist[] =</div><div class="line">&quot;ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_- &quot;</div><div class="line">&quot;.@&amp;;&lt;&gt;()|/\\\&apos;\&quot;:%=~`&quot;;</div><div class="line">...</div><div class="line">for (p+=strspn(p,whitelist); p != q; p+=strspn(p,whitelist))</div><div class="line">*p=&apos;_&apos;;</div><div class="line">return(sanitize_command);</div></pre></td></tr></table></figure>
+<p>我们可以看到不在白名单中的字符全部会被替换成_,但是官方却把<code>|</code>和<code>;</code>放在了白名单中,导致了可以执行多个命令…….</p>
+<p>所以,经过以上的流程分析,可以有两种修复方法：</p>
+<p>1.设置<code>Policy</code>文件</p>
+<p>policy.xml</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">&lt;policymap&gt;</div><div class="line">&lt;policy domain=&quot;coder&quot; rights=&quot;none&quot; pattern=&quot;EPHEMERAL&quot; /&gt;</div><div class="line">&lt;policy domain=&quot;coder&quot; rights=&quot;none&quot; pattern=&quot;URL&quot; /&gt;</div><div class="line">&lt;policy domain=&quot;coder&quot; rights=&quot;none&quot; pattern=&quot;HTTPS&quot; /&gt;</div><div class="line">&lt;policy domain=&quot;coder&quot; rights=&quot;none&quot; pattern=&quot;MVG&quot; /&gt;</div><div class="line">&lt;policy domain=&quot;coder&quot; rights=&quot;none&quot; pattern=&quot;MSL&quot; /&gt;</div><div class="line">&lt;policy domain=&quot;coder&quot; rights=&quot;none&quot; pattern=&quot;TEXT&quot; /&gt;</div><div class="line">&lt;policy domain=&quot;coder&quot; rights=&quot;none&quot; pattern=&quot;SHOW&quot; /&gt;</div><div class="line">&lt;policy domain=&quot;coder&quot; rights=&quot;none&quot; pattern=&quot;WIN&quot; /&gt;</div><div class="line">&lt;policy domain=&quot;coder&quot; rights=&quot;none&quot; pattern=&quot;PLT&quot; /&gt;</div><div class="line">&lt;/policymap&gt;</div></pre></td></tr></table></figure>
+<p><a href="https://imagetragick.com/" target="_blank" rel="external">来自imagetragick.com</a></p>
+<p>2.如果不需要一些不常用的delegate里面的功能只保留https这个功能的话,去掉whitelist[] 里面的管道符号<code>|</code>，还有<code>;</code>号等特殊符号</p>
+<p>可以看到去掉白名单里面的<code>;</code>和<code>|</code>之后,命令执行已经不成功了:/</p>
+<p>相应的,想要发掘对应的delegate可以有什么样的利用,可以去执行具以下具体的委托</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div></pre></td><td class="code"><pre><div class="line">&lt;delegatemap&gt;</div><div class="line">&lt;delegate decode=&quot;autotrace&quot; stealth=&quot;True&quot; command=&quot;&amp;quot;convert&amp;quot; &amp;quot;%i&amp;quot; &amp;quot;pnm:%u&amp;quot;\n&amp;quot;autotrace&amp;quot; -input-format pnm -output-format svg -output-file &amp;quot;%o&amp;quot; &amp;quot;%u&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;blender&quot; command=&quot;&amp;quot;blender&amp;quot; -b &amp;quot;%i&amp;quot; -F PNG -o &amp;quot;%o&amp;quot;&amp;quot;\n&amp;quot;convert&amp;quot; -concatenate &amp;quot;%o*.png&amp;quot; &amp;quot;%o&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;browse&quot; stealth=&quot;True&quot; spawn=&quot;True&quot; command=&quot;&amp;quot;xdg-open&amp;quot; http://www.imagemagick.org/; rm &amp;quot;%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;cdr&quot; command=&quot;&amp;quot;uniconvertor&amp;quot; &amp;quot;%i&amp;quot; &amp;quot;%o.svg&amp;quot;; mv &amp;quot;%o.svg&amp;quot; &amp;quot;%o&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;cgm&quot; thread-support=&quot;False&quot; command=&quot;&amp;quot;ralcgm&amp;quot; -d ps -oC &amp;lt; &amp;quot;%i&amp;quot; &amp;gt; &amp;quot;%o&amp;quot; 2&amp;gt; &amp;quot;%Z&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;dvi&quot; command=&quot;&amp;quot;dvips&amp;quot; -q -o &amp;quot;%o&amp;quot; &amp;quot;%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;dng:decode&quot; command=&quot;&amp;quot;ufraw-batch&amp;quot; --silent --create-id=also --out-type=png --out-depth=16 &amp;quot;--output=%u.png&amp;quot; &amp;quot;%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;dot&quot; command=&apos;&amp;quot;dot&amp;quot; -Tsvg &amp;quot;%i&amp;quot; -o &amp;quot;%o&amp;quot;&apos; /&gt;</div><div class="line">&lt;delegate decode=&quot;edit&quot; stealth=&quot;True&quot; command=&quot;&amp;quot;/etc/alternatives/x-terminal-emulator&amp;quot; -title &amp;quot;Edit Image Comment&amp;quot; -e vi &amp;quot;%o&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;eps&quot; encode=&quot;pdf&quot; mode=&quot;bi&quot; command=&quot;&amp;quot;gs&amp;quot; -q -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 &amp;quot;-sDEVICE=pdfwrite&amp;quot; &amp;quot;-sOutputFile=%o&amp;quot; &amp;quot;-f%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;eps&quot; encode=&quot;ps&quot; mode=&quot;bi&quot; command=&quot;&amp;quot;gs&amp;quot; -q -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=nodevice&amp;quot; &amp;quot;-sOutputFile=%o&amp;quot; &amp;quot;-f%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;fig&quot; command=&quot;&amp;quot;fig2dev&amp;quot; -L ps &amp;quot;%i&amp;quot; &amp;quot;%o&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;plt&quot; command=&quot;&amp;quot;echo&amp;quot; &amp;quot;set size 1.25,0.62; set terminal postscript portrait color solid; set output \&apos;%o\&apos;; load \&apos;%i\&apos;&amp;quot; &amp;gt; &amp;quot;%u&amp;quot;;&amp;quot;gnuplot&amp;quot; &amp;quot;%u&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;hpg&quot; command=&quot;&amp;quot;hp2xx&amp;quot; -q -m eps -f `basename &amp;quot;%o&amp;quot;` &amp;quot;%i&amp;quot;;     mv -f `basename &amp;quot;%o&amp;quot;` &amp;quot;%o&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;hpgl&quot; command=&quot;if [ -e hp2xx -o -e /usr/bin/hp2xx ]; then     hp2xx -q -m eps -f `basename &amp;quot;%o&amp;quot;` &amp;quot;%i&amp;quot;;     mv -f `basename &amp;quot;%o&amp;quot;` &amp;quot;%o&amp;quot;;   else     echo &amp;quot;You need to install hp2xx to use HPGL files with ImageMagick.&amp;quot;;     exit 1;   fi&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;htm&quot; command=&quot;&amp;quot;html2ps&amp;quot; -U -o &amp;quot;%o&amp;quot; &amp;quot;%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;html&quot; command=&quot;&amp;quot;html2ps&amp;quot; -U -o &amp;quot;%o&amp;quot; &amp;quot;%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;https&quot; command=&quot;&amp;quot;curl&amp;quot; -s -k -o &amp;quot;%o&amp;quot; &amp;quot;https:%M&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;ilbm&quot; command=&quot;&amp;quot;ilbmtoppm&amp;quot; &amp;quot;%i&amp;quot; &amp;gt; &amp;quot;%o&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;man&quot; command=&quot;&amp;quot;groff&amp;quot; -man -Tps &amp;quot;%i&amp;quot; &amp;gt; &amp;quot;%o&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;mpeg:decode&quot; command=&quot;&amp;quot;ffmpeg&amp;quot; -v -1 -i &amp;quot;%i&amp;quot; -vframes %S -vcodec pam -an -f rawvideo -y &amp;quot;%u.pam&amp;quot; 2&amp;gt; &amp;quot;%Z&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate encode=&quot;mpeg:encode&quot; stealth=&quot;True&quot; command=&quot;&amp;quot;ffmpeg&amp;quot; -v -1 -mbd rd -trellis 2 -cmp 2 -subcmp 2 -g 300 -i &amp;quot;%M%%d.jpg&amp;quot; &amp;quot;%u.%m&amp;quot; 2&amp;gt; &amp;quot;%Z&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;sid&quot; command=&quot;&amp;quot;mrsidgeodecode&amp;quot; -if sid -i &amp;quot;%i&amp;quot; -of tif -o &amp;quot;%o&amp;quot; &amp;gt; &amp;quot;%u&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;pcl:color&quot; stealth=&quot;True&quot; command=&quot;&amp;quot;pcl6&amp;quot; -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=ppmraw&amp;quot; -dTextAlphaBits=%u -dGraphicsAlphaBits=%u &amp;quot;-r%s&amp;quot; %s &amp;quot;-sOutputFile=%s&amp;quot; &amp;quot;%s&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;pcl:cmyk&quot; stealth=&quot;True&quot; command=&quot;&amp;quot;pcl6&amp;quot; -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=pamcmyk32&amp;quot; -dTextAlphaBits=%u -dGraphicsAlphaBits=%u &amp;quot;-r%s&amp;quot; %s &amp;quot;-sOutputFile=%s&amp;quot; &amp;quot;%s&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;pcl:mono&quot; stealth=&quot;True&quot; command=&quot;&amp;quot;pcl6&amp;quot; -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=pbmraw&amp;quot; -dTextAlphaBits=%u -dGraphicsAlphaBits=%u &amp;quot;-r%s&amp;quot; %s &amp;quot;-sOutputFile=%s&amp;quot; &amp;quot;%s&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;pdf&quot; encode=&quot;eps&quot; mode=&quot;bi&quot; command=&quot;&amp;quot;gs&amp;quot; -q -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=epswrite&amp;quot; &amp;quot;-sOutputFile=%o&amp;quot; &amp;quot;-f%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;pdf&quot; encode=&quot;ps&quot; mode=&quot;bi&quot; command=&quot;&amp;quot;gs&amp;quot; -q -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=nodevice&amp;quot; &amp;quot;-sOutputFile=%o&amp;quot; &amp;quot;-f%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;tiff&quot; encode=&quot;launch&quot; mode=&quot;encode&quot; command=&quot;&amp;quot;gimp&amp;quot; &amp;quot;%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;pnm&quot; encode=&quot;ilbm&quot; mode=&quot;encode&quot; command=&quot;&amp;quot;ppmtoilbm&amp;quot; -24if &amp;quot;%i&amp;quot; &amp;gt; &amp;quot;%o&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;pov&quot; command=&quot;&amp;quot;povray&amp;quot; &amp;quot;+i%i&amp;quot; -D0 &amp;quot;+o%o&amp;quot; +fn%q +w%w +h%h +a -q9 &amp;quot;-kfi%s&amp;quot; &amp;quot;-kff%n&amp;quot;;&amp;quot;convert&amp;quot; -concatenate &amp;quot;%o*.png&amp;quot; &amp;quot;%o&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;ps&quot; encode=&quot;eps&quot; mode=&quot;bi&quot; command=&quot;&amp;quot;gs&amp;quot; -q -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=epswrite&amp;quot; &amp;quot;-sOutputFile=%o&amp;quot; &amp;quot;-f%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;ps&quot; encode=&quot;pdf&quot; mode=&quot;bi&quot; command=&quot;&amp;quot;gs&amp;quot; -q -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=pdfwrite&amp;quot; &amp;quot;-sOutputFile=%o&amp;quot; &amp;quot;-f%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;ps&quot; encode=&quot;print&quot; mode=&quot;encode&quot; command=&quot;lpr &amp;quot;%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;ps:alpha&quot; stealth=&quot;True&quot; command=&quot;&amp;quot;gs&amp;quot; -q -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=pngalpha&amp;quot; -dTextAlphaBits=%u -dGraphicsAlphaBits=%u &amp;quot;-r%s&amp;quot; %s &amp;quot;-sOutputFile=%s&amp;quot; &amp;quot;-f%s&amp;quot; &amp;quot;-f%s&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;ps:cmyk&quot; stealth=&quot;True&quot; command=&quot;&amp;quot;gs&amp;quot; -q -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=pam&amp;quot; -dTextAlphaBits=%u -dGraphicsAlphaBits=%u &amp;quot;-r%s&amp;quot; %s &amp;quot;-sOutputFile=%s&amp;quot; &amp;quot;-f%s&amp;quot; &amp;quot;-f%s&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;ps:color&quot; stealth=&quot;True&quot; command=&quot;&amp;quot;gs&amp;quot; -q -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=pnmraw&amp;quot; -dTextAlphaBits=%u -dGraphicsAlphaBits=%u &amp;quot;-r%s&amp;quot; %s &amp;quot;-sOutputFile=%s&amp;quot; &amp;quot;-f%s&amp;quot; &amp;quot;-f%s&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;ps:mono&quot; stealth=&quot;True&quot; command=&quot;&amp;quot;gs&amp;quot; -q -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=pbmraw&amp;quot; -dTextAlphaBits=%u -dGraphicsAlphaBits=%u &amp;quot;-r%s&amp;quot; %s &amp;quot;-sOutputFile=%s&amp;quot; &amp;quot;-f%s&amp;quot; &amp;quot;-f%s&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;rgba&quot; encode=&quot;rle&quot; mode=&quot;encode&quot; command=&quot;&amp;quot;rawtorle&amp;quot; -o &amp;quot;%o&amp;quot; -v &amp;quot;%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;scan&quot; command=&quot;&amp;quot;scanimage&amp;quot; -d &amp;quot;%i&amp;quot; &amp;gt; &amp;quot;%o&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;scanx&quot; command=&quot;&amp;quot;scanimage&amp;quot; &amp;gt; &amp;quot;%o&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;miff&quot; encode=&quot;show&quot; spawn=&quot;True&quot; command=&quot;&amp;quot;/usr/bin/display&amp;quot; -delay 0 -window-group %[group] -title &amp;quot;%l &amp;quot; &amp;quot;ephemeral:%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;shtml&quot; command=&quot;&amp;quot;html2ps&amp;quot; -U -o &amp;quot;%o&amp;quot; &amp;quot;%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;svg&quot; command=&quot;&amp;quot;rsvg-convert&amp;quot; -o &amp;quot;%o&amp;quot; &amp;quot;%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;txt&quot; encode=&quot;ps&quot; mode=&quot;bi&quot; command=&quot;&amp;quot;enscript&amp;quot; -o &amp;quot;%o&amp;quot; &amp;quot;%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;miff&quot; encode=&quot;win&quot; stealth=&quot;True&quot; spawn=&quot;True&quot; command=&quot;&amp;quot;/usr/bin/display&amp;quot; -immutable -delay 0 -window-group %[group] -title &amp;quot;%l &amp;quot; &amp;quot;ephemeral:%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;wmf&quot; command=&quot;&amp;quot;wmf2eps&amp;quot; -o &amp;quot;%o&amp;quot; &amp;quot;%i&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;xps:color&quot; stealth=&quot;True&quot; command=&quot;&amp;quot;gxps&amp;quot; -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=ppmraw&amp;quot; -dTextAlphaBits=%u -dGraphicsAlphaBits=%u &amp;quot;-r%s&amp;quot; %s &amp;quot;-sOutputFile=%s&amp;quot; &amp;quot;%s&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;xps:cmyk&quot; stealth=&quot;True&quot; command=&quot;&amp;quot;gxps&amp;quot; -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=bmpsep8&amp;quot; -dTextAlphaBits=%u -dGraphicsAlphaBits=%u &amp;quot;-r%s&amp;quot; %s &amp;quot;-sOutputFile=%s&amp;quot; &amp;quot;%s&amp;quot;&quot;/&gt;</div><div class="line">&lt;delegate decode=&quot;xps:mono&quot; stealth=&quot;True&quot; command=&quot;&amp;quot;gxps&amp;quot; -dQUIET -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -dMaxBitmap=500000000 -dAlignToPixels=0 -dGridFitTT=2 &amp;quot;-sDEVICE=pbmraw&amp;quot; -dTextAlphaBits=%u -dGraphicsAlphaBits=%u &amp;quot;-r%s&amp;quot; %s &amp;quot;-sOutputFile=%s&amp;quot; &amp;quot;%s&amp;quot;&quot;/&gt;</div><div class="line">&lt;/delegatemap&gt;</div></pre></td></tr></table></figure>
+<p><img src="/old/2017/10/10/Imagetragick/4116422802.png" alt="B487FA86-DEA2-4A3F-9AA3-E2AA9A2D1170.png"><br>Reference:</p>
+<p><a href="http://blog.csdn.net/liujiyong7/article/details/44833475" target="_blank" rel="external">囧囧有神的博客</a></p>
+	  
+	</div>
+
+	<div>
+  	<center>
+	<div class="pagination">
+
+    
+    
+    <a href="/old/2017/10/10/ImageMagick2/" type="button" class="btn btn-default"><i
+                class="fa fa-arrow-circle-o-left"></i> Prev</a>
+    
+
+    <a href="/old/" type="button" class="btn btn-default"><i class="fa fa-home"></i>Home</a>
+    
+    <a href="/old/2017/10/10/Nginx-HTTP-Parse-Vulnerability/" type="button" class="btn btn-default ">Next<i
+                class="fa fa-arrow-circle-o-right"></i></a>
+    
+
+    
+</div>
+
+    </center>
+	</div>
+	
+	<!-- comment -->
+	
+<section id="comment">
+    <h2 class="title">Comments</h2>
+
+    
+    <div id="disqus_thread" class="ds-thread">
+        <script type="text/javascript">
+            /**
+             * RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+             * LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+             */
+                /*
+                 var disqus_config = function () {
+                 this.page.url = PAGE_URL; // Replace PAGE_URL with your page's canonical URL variable
+                 this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                 };
+                 */
+            (function() { // DON'T EDIT BELOW THIS LINE
+                var d = document, s = d.createElement('script');
+
+                s.src = '//lonelyrain-1.disqus.com/embed.js';
+
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="/old//disqus.com/?ref_noscript">comments powered by
+                Disqus.</a></noscript>
+    </div>
+    
+</section>
+
+
+	</div> <!-- col-md-9/col-md-12 -->
+		
+	
+	<div id="side_meta">
+		<div class="col-md-3" id="post_meta"> 
+
+	<!-- date -->
+	
+	<div class="meta-widget">
+	<i class="fa fa-clock-o"></i>
+	2017-10-10 
+	</div>
+	
+
+	<!-- categories -->
+    
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#categorys"><i class="fa fa-folder"></i></a>	
+    <ul id="categorys" class="tag_box list-unstyled collapse in">
+          
+  <li>
+    <li><a href="/old/categories/漏洞分析/">漏洞分析<span>13</span></a></li>
+  </li>
+
+    </ul>
+	</div>
+	
+
+	<!-- tags -->
+	
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#tags"><i class="fa fa-tags"></i></a>		  
+    <ul id="tags" class="tag_box list-unstyled collapse in">	  
+	    
+  <li><a href="/old/tags/漏洞分析/">漏洞分析<span>12</span></a></li> <li><a href="/old/tags/Imagetragick/">Imagetragick<span>2</span></a></li> <li><a href="/old/tags/命令执行/">命令执行<span>3</span></a></li>
+    </ul>
+	</div>
+		
+
+	<!-- toc -->
+	<div class="meta-widget">
+	
+	   <a data-toggle="collapse" data-target="#toc"><i class="fa fa-bars"></i></a>
+	   <div id="toc" class="toc collapse in">
+		   <span class="toc-title">Contents</span>
+			
+		</div>
+	
+	</div>
+	
+    <hr>
+	
+</div><!-- col-md-3 -->
+
+	</div>
+		
+
+</div><!-- row -->
+
+<script type="text/javascript">
+var disqus_shortname = 'lonelyrain-1';
+(function(){
+  var dsq = document.createElement('script');
+  dsq.type = 'text/javascript';
+  dsq.async = true;
+  dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+}());
+</script>
+
+
+
+	</div>
+  </div>
+  <div class="container-narrow">
+  <footer> <p>
+  &copy; 2019 LonelyRain
+  
+</p>
+
+<script>
+  var disqus_shortname = 'lonelyrain-1';
+  
+  var disqus_url = 'http://cnlonelyrain.github.io/2017/10/10/Imagetragick/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//go.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+ </footer>
+</div> <!-- container-narrow -->
+  
+
+
+  
+<a id="gotop" href="#">   
+  <span>⬆︎TOP</span>
+</a>
+
+<script src="/old/js/jquery.imagesloaded.min.js"></script>
+<script src="/old/js/gallery.js"></script>
+<script src="/old/js/bootstrap.min.js"></script>
+<script src="/old/js/main.js"></script>
+<script src="/old/js/search.js"></script> 
+
+
+<link rel="stylesheet" href="/old/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/old/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+
+   <script type="text/javascript">      
+     var search_path = "old/search.xml";
+	 if (search_path.length == 0) {
+	 	search_path = "old/search.xml";
+	 }
+	 var path = "/" + search_path;
+     searchFunc(path, 'local-search-input', 'local-search-result');
+   </script>
+
+</body>
+   </html>

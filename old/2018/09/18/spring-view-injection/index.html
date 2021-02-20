@@ -1,0 +1,378 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="cache-control" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  
+  <title>Spring视图注入漏洞 | \\Johnis.online\BLOG</title>
+  <meta name="author" content="LonelyRain">
+  
+  <meta name="description" content="背景  在一次对某客户的检测过程中，发现了一个由Spring应用开发程序员错误书写代码导致的安全问题。过后对该漏洞进行相应的研究，了解此漏洞背景知识是要先了解基础的MVC开发模式。">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="Spring视图注入漏洞"/>
+  <meta property="og:site_name" content="\\Johnis.online\BLOG"/>
+
+  
+    <meta property="og:image" content=""/>
+  
+
+  
+  
+    <link href="/old/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/old/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/responsive.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/google-fonts.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="/old//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/old/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-70812759-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?cb5448498d7169c668b07c2b255d62c1";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+ <body>  
+  <nav id="main-nav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <button type="button" class="navbar-header navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+		<span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+	  <a class="navbar-brand" href="/old/">\\Johnis.online\BLOG</a>
+      <div class="collapse navbar-collapse nav-menu">
+		<ul class="nav navbar-nav">
+		  
+		  <li>
+			<a href="/old/archives" title="All the articles.">
+			  <i class=""></i>Archives
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/categories" title="All the categories.">
+			  <i class=""></i>Categories
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/tags" title="All the tags.">
+			  <i class=""></i>Tags
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/about" title="About me.">
+			  <i class=""></i>About
+			</a>
+		  </li>
+		  
+		</ul>
+      </div>
+    </div> <!-- container -->
+</nav>
+<div class="clearfix"></div>
+
+  <div class="container">
+  	<div class="content">
+    	 
+
+
+	
+		<div class="page-header">
+			<h1> Spring视图注入漏洞</h1>
+		</div>
+	
+
+
+
+<div class="row post">
+	<!-- cols -->
+	
+	<div id="top_meta"></div>
+	<div class="col-md-9">
+	
+
+	<!-- content -->
+	<div class="mypage">		
+	  		
+
+	  <h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>  在一次对某客户的检测过程中，发现了一个由Spring应用开发程序员错误书写代码导致的安全问题。过后对该漏洞进行相应的研究，了解此漏洞背景知识是要先了解基础的MVC开发模式。</p>
+  <a id="more"></a>
+<p>  <img src="/old/2018/09/18/spring-view-injection/mvc.jpeg" alt="MVC"></p>
+<p>具体相关依赖知识在此就不进行赘述。</p>
+<h3 id="1-Spring-MVC-的报错页面"><a href="#1-Spring-MVC-的报错页面" class="headerlink" title="1. Spring MVC 的报错页面"></a>1. Spring MVC 的报错页面</h3><p>在对客户网站的参数进行常规异常输入时，遇见了一个非常让人困惑的HTTP 500错误页面。<br>为什么一个参数能导致/Spring提供View的功能错误？</p>
+<p>  <img src="/old/2018/09/18/spring-view-injection/url.jpeg" alt="错误页面"></p>
+<h3 id="2-Debug回溯"><a href="#2-Debug回溯" class="headerlink" title="2. Debug回溯"></a>2. Debug回溯</h3><p>以下为Exception回溯内容：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">HTTP Status 500 - Could not resolve view with name &apos;test&apos; in servlet with name &apos;action&apos;</div><div class="line"></div><div class="line">javax.servlet.ServletException: Could not resolve view with name &apos;test&apos; in servlet with name &apos;action&apos;</div><div class="line">	org.springframework.web.servlet.DispatcherServlet.render(DispatcherServlet.java:1190)</div><div class="line">	org.springframework.web.servlet.DispatcherServlet.processDispatchResult(DispatcherServlet.java:992)</div><div class="line">	org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:939)</div><div class="line">	org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:856)</div><div class="line">	org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:920)</div><div class="line">	org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:816)</div><div class="line">	javax.servlet.http.HttpServlet.service(HttpServlet.java:624)</div><div class="line">	org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:801)</div><div class="line">	javax.servlet.http.HttpServlet.service(HttpServlet.java:731)</div><div class="line">	filter.CompanyFilter.doFilter(CompanyFilter.java:50)</div><div class="line">	filter.LoginFilter.doFilter(LoginFilter.java:89)</div><div class="line">	filter.HttpRequestFilter.doFilter(HttpRequestFilter.java:24)</div><div class="line">	com.eall.hr.web.SetCharacterEncodingFilter.doFilter(SetCharacterEncodingFilter.java:73)</div><div class="line">	org.apache.shiro.web.servlet.AbstractShiroFilter.executeChain(AbstractShiroFilter.java:449)</div><div class="line">	org.apache.shiro.web.servlet.AbstractShiroFilter$1.call(AbstractShiroFilter.java:365)</div><div class="line">	org.apache.shiro.subject.support.SubjectCallable.doCall(SubjectCallable.java:90)</div><div class="line">	org.apache.shiro.subject.support.SubjectCallable.call(SubjectCallable.java:83)</div><div class="line">	org.apache.shiro.subject.support.DelegatingSubject.execute(DelegatingSubject.java:383)</div><div class="line">	org.apache.shiro.web.servlet.AbstractShiroFilter.doFilterInternal(AbstractShiroFilter.java:362)</div><div class="line">	org.apache.shiro.web.servlet.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:125)</div><div class="line">	org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:346)</div><div class="line">	org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:259)</div></pre></td></tr></table></figure>
+<p>于是下载了Spring的源代码进行分析，<code>Could not resolve view with name</code>此串字符在Spring中只有3至4次出现的地方，所以较好定位报错地点。</p>
+<p><img src="/old/2018/09/18/spring-view-injection/source-code-search.jpeg" alt="源代码"></p>
+<p>而且报错页面没有被关闭，所以通过上图也能直接找到引发错误的原因为以下代码行。</p>
+<p><code>org.springframework.web.servlet.DispatcherServlet.render(DispatcherServlet.java:1190)</code></p>
+<p>render()函数源代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">render</span><span class="params">(ModelAndView mv, HttpServletRequest request, HttpServletResponse response)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">  <span class="comment">// Determine locale for request and apply it to the response.</span></div><div class="line">  Locale locale =</div><div class="line">      (<span class="keyword">this</span>.localeResolver != <span class="keyword">null</span> ? <span class="keyword">this</span>.localeResolver.resolveLocale(request) : request.getLocale());</div><div class="line">  response.setLocale(locale);</div><div class="line"></div><div class="line">  View view;</div><div class="line">  String viewName = mv.getViewName();</div><div class="line">  <span class="keyword">if</span> (viewName != <span class="keyword">null</span>) &#123;</div><div class="line">    <span class="comment">// We need to resolve the view name.</span></div><div class="line">    view = resolveViewName(viewName, mv.getModelInternal(), locale, request);</div><div class="line">    <span class="keyword">if</span> (view == <span class="keyword">null</span>) &#123;</div><div class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> ServletException(<span class="string">"Could not resolve view with name '"</span> + mv.getViewName() +</div><div class="line">          <span class="string">"' in servlet with name '"</span> + getServletName() + <span class="string">"'"</span>);</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">else</span> &#123;</div><div class="line">    <span class="comment">// No need to lookup: the ModelAndView object contains the actual View object.</span></div><div class="line">    view = mv.getView();</div><div class="line">    <span class="keyword">if</span> (view == <span class="keyword">null</span>) &#123;</div><div class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> ServletException(<span class="string">"ModelAndView ["</span> + mv + <span class="string">"] neither contains a view name nor a "</span> +</div><div class="line">          <span class="string">"View object in servlet with name '"</span> + getServletName() + <span class="string">"'"</span>);</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// Delegate to the View object for rendering.</span></div><div class="line">  <span class="keyword">if</span> (logger.isTraceEnabled()) &#123;</div><div class="line">    logger.trace(<span class="string">"Rendering view ["</span> + view + <span class="string">"] "</span>);</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">try</span> &#123;</div><div class="line">    <span class="keyword">if</span> (mv.getStatus() != <span class="keyword">null</span>) &#123;</div><div class="line">      response.setStatus(mv.getStatus().value());</div><div class="line">    &#125;</div><div class="line">    view.render(mv.getModelInternal(), request, response);</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">catch</span> (Exception ex) &#123;</div><div class="line">    <span class="keyword">if</span> (logger.isDebugEnabled()) &#123;</div><div class="line">      logger.debug(<span class="string">"Error rendering view ["</span> + view + <span class="string">"]"</span>, ex);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">throw</span> ex;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>最终调用到的就是render函数。</p>
+<p>先需要了解一下Spring MVC的整个调用流程。</p>
+<p><img src="/old/2018/09/18/spring-view-injection/process-flow.jpeg" alt="调用流程"></p>
+<p><code>doGet() -&gt; processRequest() -&gt; doService() -&gt; doDispatch() -&gt; processDispatcheRequestResult() -&gt; render()</code></p>
+<p>在render()函数中，最终会追踪到函数createView()。</p>
+<p>createView()函数原型：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">protected</span> View <span class="title">createView</span><span class="params">(String viewName, Locale locale)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">  <span class="comment">// If this resolver is not supposed to handle the given view,</span></div><div class="line">  <span class="comment">// return null to pass on to the next resolver in the chain.</span></div><div class="line">  <span class="keyword">if</span> (!canHandle(viewName, locale)) &#123;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// Check for special "redirect:" prefix.</span></div><div class="line">  <span class="keyword">if</span> (viewName.startsWith(REDIRECT_URL_PREFIX)) &#123;</div><div class="line">    String redirectUrl = viewName.substring(REDIRECT_URL_PREFIX.length());</div><div class="line">    RedirectView view = <span class="keyword">new</span> RedirectView(redirectUrl,</div><div class="line">        isRedirectContextRelative(), isRedirectHttp10Compatible());</div><div class="line">    String[] hosts = getRedirectHosts();</div><div class="line">    <span class="keyword">if</span> (hosts != <span class="keyword">null</span>) &#123;</div><div class="line">      view.setHosts(hosts);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> applyLifecycleMethods(REDIRECT_URL_PREFIX, view);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// Check for special "forward:" prefix.</span></div><div class="line">  <span class="keyword">if</span> (viewName.startsWith(FORWARD_URL_PREFIX)) &#123;</div><div class="line">    String forwardUrl = viewName.substring(FORWARD_URL_PREFIX.length());</div><div class="line">    InternalResourceView view = <span class="keyword">new</span> InternalResourceView(forwardUrl);</div><div class="line">    <span class="keyword">return</span> applyLifecycleMethods(FORWARD_URL_PREFIX, view);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// Else fall back to superclass implementation: calling loadView.</span></div><div class="line">  <span class="keyword">return</span> <span class="keyword">super</span>.createView(viewName, locale);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可以看到Spring对两种前缀(forward:与redirect)进行了特殊处理。</p>
+<hr>
+<p><em>InternalResourceView</em>：</p>
+<p>根据视图名到指定的位置获取对应的模板文件</p>
+<p><em>RedirectView</em>：</p>
+<p>根据视图名跳转</p>
+<hr>
+<p>在处理<code>forward:</code>时会再调用一次InternalResourceView，而InternalResourceView是Spring中用来加载Jar包中内部资源用的，所以可以用来做Jar包内的任意文件读取。</p>
+<p>不过以上InternalResourceView受配置影响：</p>
+<p>例：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">&lt;bean id=&quot;viewResolver&quot; class=&quot;org.springframework.web.servlet.view.InternalResourceViewResolver&quot;&gt;</div><div class="line">   &lt;property name=&quot;prefix&quot; value=&quot;/WEB-INF/&quot;/&gt;</div><div class="line">&lt;/bean&gt;</div></pre></td></tr></table></figure></p>
+<p>如果此时调用InternalResourceView实际上会在前面加上前缀<code>/WEB-INF/</code>，所以在配置suffix的情况下，可能就不能读取任意Jar包内的文件了。</p>
+<h3 id="3-危害"><a href="#3-危害" class="headerlink" title="3. 危害"></a>3. 危害</h3><p>所以如上所述的这些东西到底能造成什么危害呢？</p>
+<p>初步想法为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">1. 权限认证Bypass</div><div class="line">2. 文件读取</div><div class="line">3. 重定向</div><div class="line">4. HTTP Header Injection</div></pre></td></tr></table></figure>
+<p>写了一个本地测试有漏洞的代码Demo验证以上想法。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line">package chaitin;</div><div class="line"></div><div class="line">import org.springframework.stereotype.Controller;</div><div class="line">import org.springframework.ui.Model;</div><div class="line">import org.springframework.web.bind.annotation.GetMapping;</div><div class="line">import org.springframework.web.bind.annotation.ModelAttribute;</div><div class="line">import org.springframework.web.bind.annotation.RequestParam;</div><div class="line">import org.springframework.web.bind.annotation.SessionAttributes;</div><div class="line">import org.springframework.web.servlet.ModelAndView;</div><div class="line"></div><div class="line">import java.util.Map;</div><div class="line"></div><div class="line">import javax.servlet.http.Cookie;</div><div class="line">import javax.servlet.http.HttpServletRequest;</div><div class="line">import javax.servlet.http.HttpServletResponse;</div><div class="line"></div><div class="line">@Controller</div><div class="line">public class UserLoginController &#123;</div><div class="line"></div><div class="line">	@GetMapping(&quot;/login&quot;)</div><div class="line">	public ModelAndView login(HttpServletResponse response,</div><div class="line">			@RequestParam(name = &quot;username&quot;, required = true, defaultValue = &quot;admin&quot;) String username,</div><div class="line">			@RequestParam(name = &quot;password&quot;, required = true, defaultValue = &quot;******&quot;) String password,</div><div class="line">			@RequestParam(name = &quot;view&quot;, required = true, defaultValue = &quot;UsersLogin&quot;) String view, Model user) &#123;</div><div class="line">		user.addAttribute(&quot;username&quot;, username);</div><div class="line">		user.addAttribute(&quot;password&quot;, password);</div><div class="line">    	System.out.println(Class.class.getClass().getResource(&quot;/&quot;).getPath());</div><div class="line"></div><div class="line"></div><div class="line">		if (username.equals(&quot;admin&quot;) &amp;&amp; password.equals(&quot;123123&quot;)) &#123;</div><div class="line">			response.addCookie(new Cookie(&quot;AdminStatus&quot;, &quot;true&quot;));</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		return new ModelAndView(view);</div><div class="line"></div><div class="line">	&#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h5 id="1-权限认证Bypass-成功"><a href="#1-权限认证Bypass-成功" class="headerlink" title="(1) 权限认证Bypass [成功]"></a>(1) 权限认证Bypass [成功]</h5><p>假设采用了装饰器（Decorator）来进行敏感功能的统一权限认证，直接使用view的<code>forward:</code>是能够直接绕过权限认证装饰器，对敏感功能进行直接访问。</p>
+<p><img src="/old/2018/09/18/spring-view-injection/spring-bypass-auth.jpeg" alt="Spring权限认证Bypass"></p>
+<h5 id="2-文件读取-成功"><a href="#2-文件读取-成功" class="headerlink" title="(2) 文件读取 [成功]"></a>(2) 文件读取 [成功]</h5><p>测试URL：<br><a href="http://127.0.0.1:8080/login?username=admin&amp;password=111&amp;view=forward:/database.properties" target="_blank" rel="external">http://127.0.0.1:8080/login?username=admin&amp;password=111&amp;view=forward:/database.properties</a></p>
+<p><img src="/old/2018/09/18/spring-view-injection/file-loading.jpeg" alt="文件读取"></p>
+<h5 id="3-HTTP-Header-Injection-失败"><a href="#3-HTTP-Header-Injection-失败" class="headerlink" title="(3) HTTP Header Injection [失败]"></a>(3) HTTP Header Injection [失败]</h5><p>由于Spring对传入程序的CRLF进行了处理。将其转化为了空格，所以该漏洞没有成功实现。</p>
+<h3 id="4-限制"><a href="#4-限制" class="headerlink" title="4. 限制"></a>4. 限制</h3><p>该漏洞有以下两点限制</p>
+<ul>
+<li><ol>
+<li>无法读取Jar外的文件</li>
+</ol>
+</li>
+<li><ol>
+<li>如果加了suffix可能，无法读取想要的文件</li>
+</ol>
+</li>
+</ul>
+<p>对于第1点限制，有一个未经验证的想法。是否能组合CVE-2018-1271在Windows环境下对目录外的文件进行读取呢？但是由于手头边Windows环境还没有搭建好，可能需要过段时间才能进行测试:p</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">/resources/%5c%5c..%5c/..%5c/..%5c/..%5c/..%5c/..%5c/..%5c/..%5c/..%5c/windows/win.ini</div></pre></td></tr></table></figure>
+<h3 id="5-Exploit"><a href="#5-Exploit" class="headerlink" title="5. Exploit!"></a>5. Exploit!</h3><p><img src="/old/2018/09/18/spring-view-injection/expolit.jpeg" alt="读取成功"></p>
+<h3 id="References"><a href="#References" class="headerlink" title="References"></a>References</h3><p><a href="https://o2platform.files.wordpress.com/2011/07/ounce_springframework_vulnerabilities.pdf" target="_blank" rel="external">https://o2platform.files.wordpress.com/2011/07/ounce_springframework_vulnerabilities.pdf</a><br><a href="https://danielmiessler.com/study/mvc/" target="_blank" rel="external">https://danielmiessler.com/study/mvc/</a></p>
+	  
+	</div>
+
+	<div>
+  	<center>
+	<div class="pagination">
+
+    
+    
+    <a type="button" class="btn btn-default disabled"><i class="fa fa-arrow-circle-o-left"></i>Prev</a>
+    
+
+    <a href="/old/" type="button" class="btn btn-default"><i class="fa fa-home"></i>Home</a>
+    
+    <a href="/old/2018/03/07/CVE-2018-1058/" type="button" class="btn btn-default ">Next<i
+                class="fa fa-arrow-circle-o-right"></i></a>
+    
+
+    
+</div>
+
+    </center>
+	</div>
+	
+	<!-- comment -->
+	
+<section id="comment">
+    <h2 class="title">Comments</h2>
+
+    
+    <div id="disqus_thread" class="ds-thread">
+        <script type="text/javascript">
+            /**
+             * RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+             * LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+             */
+                /*
+                 var disqus_config = function () {
+                 this.page.url = PAGE_URL; // Replace PAGE_URL with your page's canonical URL variable
+                 this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                 };
+                 */
+            (function() { // DON'T EDIT BELOW THIS LINE
+                var d = document, s = d.createElement('script');
+
+                s.src = '//lonelyrain-1.disqus.com/embed.js';
+
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="/old//disqus.com/?ref_noscript">comments powered by
+                Disqus.</a></noscript>
+    </div>
+    
+</section>
+
+
+	</div> <!-- col-md-9/col-md-12 -->
+		
+	
+	<div id="side_meta">
+		<div class="col-md-3" id="post_meta"> 
+
+	<!-- date -->
+	
+	<div class="meta-widget">
+	<i class="fa fa-clock-o"></i>
+	2018-09-18 
+	</div>
+	
+
+	<!-- categories -->
+    
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#categorys"><i class="fa fa-folder"></i></a>	
+    <ul id="categorys" class="tag_box list-unstyled collapse in">
+          
+  <li>
+    <li><a href="/old/categories/安全研究/">安全研究<span>2</span></a></li>
+  </li>
+
+    </ul>
+	</div>
+	
+
+	<!-- tags -->
+	
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#tags"><i class="fa fa-tags"></i></a>		  
+    <ul id="tags" class="tag_box list-unstyled collapse in">	  
+	    
+  <li><a href="/old/tags/Spring/">Spring<span>1</span></a></li> <li><a href="/old/tags/View-injection/">View injection<span>1</span></a></li>
+    </ul>
+	</div>
+		
+
+	<!-- toc -->
+	<div class="meta-widget">
+	
+	   <a data-toggle="collapse" data-target="#toc"><i class="fa fa-bars"></i></a>
+	   <div id="toc" class="toc collapse in">
+		   <span class="toc-title">Contents</span>
+			<ol class="toc-article"><li class="toc-article-item toc-article-level-3"><a class="toc-article-link" href="#背景"><span class="toc-article-text">背景</span></a></li><li class="toc-article-item toc-article-level-3"><a class="toc-article-link" href="#1-Spring-MVC-的报错页面"><span class="toc-article-text">1. Spring MVC 的报错页面</span></a></li><li class="toc-article-item toc-article-level-3"><a class="toc-article-link" href="#2-Debug回溯"><span class="toc-article-text">2. Debug回溯</span></a></li><li class="toc-article-item toc-article-level-3"><a class="toc-article-link" href="#3-危害"><span class="toc-article-text">3. 危害</span></a><ol class="toc-article-child"><li class="toc-article-item toc-article-level-5"><a class="toc-article-link" href="#1-权限认证Bypass-成功"><span class="toc-article-text">(1) 权限认证Bypass [成功]</span></a></li><li class="toc-article-item toc-article-level-5"><a class="toc-article-link" href="#2-文件读取-成功"><span class="toc-article-text">(2) 文件读取 [成功]</span></a></li><li class="toc-article-item toc-article-level-5"><a class="toc-article-link" href="#3-HTTP-Header-Injection-失败"><span class="toc-article-text">(3) HTTP Header Injection [失败]</span></a></li></ol></li></ol></li><li class="toc-article-item toc-article-level-3"><a class="toc-article-link" href="#4-限制"><span class="toc-article-text">4. 限制</span></a></li><li class="toc-article-item toc-article-level-3"><a class="toc-article-link" href="#5-Exploit"><span class="toc-article-text">5. Exploit!</span></a></li><li class="toc-article-item toc-article-level-3"><a class="toc-article-link" href="#References"><span class="toc-article-text">References</span></a></li></ol>
+		</div>
+	
+	</div>
+	
+    <hr>
+	
+</div><!-- col-md-3 -->
+
+	</div>
+		
+
+</div><!-- row -->
+
+<script type="text/javascript">
+var disqus_shortname = 'lonelyrain-1';
+(function(){
+  var dsq = document.createElement('script');
+  dsq.type = 'text/javascript';
+  dsq.async = true;
+  dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+}());
+</script>
+
+
+
+	</div>
+  </div>
+  <div class="container-narrow">
+  <footer> <p>
+  &copy; 2019 LonelyRain
+  
+</p>
+
+<script>
+  var disqus_shortname = 'lonelyrain-1';
+  
+  var disqus_url = 'http://cnlonelyrain.github.io/2018/09/18/spring-view-injection/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//go.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+ </footer>
+</div> <!-- container-narrow -->
+  
+
+
+  
+<a id="gotop" href="#">   
+  <span>⬆︎TOP</span>
+</a>
+
+<script src="/old/js/jquery.imagesloaded.min.js"></script>
+<script src="/old/js/gallery.js"></script>
+<script src="/old/js/bootstrap.min.js"></script>
+<script src="/old/js/main.js"></script>
+<script src="/old/js/search.js"></script> 
+
+
+<link rel="stylesheet" href="/old/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/old/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+
+   <script type="text/javascript">      
+     var search_path = "old/search.xml";
+	 if (search_path.length == 0) {
+	 	search_path = "old/search.xml";
+	 }
+	 var path = "/" + search_path;
+     searchFunc(path, 'local-search-input', 'local-search-result');
+   </script>
+
+</body>
+   </html>
