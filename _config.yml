@@ -1,1 +1,7 @@
+title: John is online
+description: 22/02/2021 - ?
+show_downloads: true
+google_analytics:
 theme: jekyll-theme-hacker
+jekyll_compose:
+auto_open: true
