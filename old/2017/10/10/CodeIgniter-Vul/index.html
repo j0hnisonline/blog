@@ -1,0 +1,373 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="cache-control" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  
+  <title>CodeIgniter伪随机数导致加密失效 | \\Johnis.online\BLOG</title>
+  <meta name="author" content="LonelyRain">
+  
+  <meta name="description" content="首先来看一段CI内核在开启session储存在数据库选项的时候的操作.也就是
+/system/core/config.php
+内核配置文件设置为以下的时候
+$config[&amp;#39;sess_use_database&amp;#39;]    = true;">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="CodeIgniter伪随机数导致加密失效"/>
+  <meta property="og:site_name" content="\\Johnis.online\BLOG"/>
+
+  
+    <meta property="og:image" content=""/>
+  
+
+  
+  
+    <link href="/old/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/old/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/responsive.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/google-fonts.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="/old//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/old/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-70812759-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?cb5448498d7169c668b07c2b255d62c1";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+ <body>  
+  <nav id="main-nav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <button type="button" class="navbar-header navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+		<span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+	  <a class="navbar-brand" href="/old/">\\Johnis.online\BLOG</a>
+      <div class="collapse navbar-collapse nav-menu">
+		<ul class="nav navbar-nav">
+		  
+		  <li>
+			<a href="/old/archives" title="All the articles.">
+			  <i class=""></i>Archives
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/categories" title="All the categories.">
+			  <i class=""></i>Categories
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/tags" title="All the tags.">
+			  <i class=""></i>Tags
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/about" title="About me.">
+			  <i class=""></i>About
+			</a>
+		  </li>
+		  
+		</ul>
+      </div>
+    </div> <!-- container -->
+</nav>
+<div class="clearfix"></div>
+
+  <div class="container">
+  	<div class="content">
+    	 
+
+
+	
+		<div class="page-header">
+			<h1> CodeIgniter伪随机数导致加密失效</h1>
+		</div>
+	
+
+
+
+<div class="row post">
+	<!-- cols -->
+	
+	<div id="top_meta"></div>
+	<div class="col-md-9">
+	
+
+	<!-- content -->
+	<div class="mypage">		
+	  		
+
+	  <p>首先来看一段CI内核在开启session储存在数据库选项的时候的操作.也就是</p>
+<p>/system/core/config.php</p>
+<p>内核配置文件设置为以下的时候</p>
+<p><code>$config[&#39;sess_use_database&#39;]    = true;</code></p>
+<a id="more"></a>
+<p>/system/libraries/Session/session.php</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">($params = array<span class="params">()</span>)</span></span></div><div class="line"><span class="function"></span></div><div class="line"><span class="function"></span>&#123;</div><div class="line"></div><div class="line">log_message(<span class="string">'debug'</span>, <span class="string">"Session Class Initialized"</span>);</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">// Set the super object to a local variable for use throughout the class</span></div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;CI =&amp; get_instance();</div><div class="line"></div><div class="line"><span class="comment">/*</span></div><div class="line"><span class="comment"></span></div><div class="line"><span class="comment">if (defined('ci_session')) &#123;</span></div><div class="line"><span class="comment"></span></div><div class="line"><span class="comment">return $this-&gt;CI-&gt;session;</span></div><div class="line"><span class="comment"></span></div><div class="line"><span class="comment">&#125; else &#123;</span></div><div class="line"><span class="comment"></span></div><div class="line"><span class="comment">define('ci_session', 1);</span></div><div class="line"><span class="comment"></span></div><div class="line"><span class="comment">&#125;</span></div><div class="line"><span class="comment"></span></div><div class="line"><span class="comment">*/</span></div><div class="line"></div><div class="line"><span class="comment">// Set all the session preferences, which can either be set</span></div><div class="line"></div><div class="line"><span class="comment">// manually via the $params array above or via the config file</span></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">foreach</span> (<span class="keyword">array</span>(<span class="string">'sess_encrypt_cookie'</span>, <span class="string">'sess_use_database'</span>, <span class="string">'sess_table_name'</span>, <span class="string">'sess_expiration'</span>, <span class="string">'sess_expire_on_close'</span>, <span class="string">'sess_match_ip'</span>, <span class="string">'sess_match_useragent'</span>, <span class="string">'sess_cookie_name'</span>, <span class="string">'cookie_path'</span>, <span class="string">'cookie_domain'</span>, <span class="string">'cookie_secure'</span>, <span class="string">'sess_time_to_update'</span>, <span class="string">'time_reference'</span>, <span class="string">'cookie_prefix'</span>, <span class="string">'encryption_key'</span>) <span class="keyword">as</span> $key)</div><div class="line"></div><div class="line">&#123;</div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;$key = (<span class="keyword">isset</span>($params[$key])) ? $params[$key] : <span class="keyword">$this</span>-&gt;CI-&gt;config-&gt;item($key);</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;encryption_key == <span class="string">''</span>)</div><div class="line"></div><div class="line">&#123;</div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;encryption_key == <span class="string">'finecms190'</span>;</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">// Load the string helper so we can use the strip_slashes() function</span></div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;CI-&gt;load-&gt;helper(<span class="string">'string'</span>);</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">// Do we need encryption? If so, load the encryption class</span></div><div class="line"></div><div class="line"><span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;sess_encrypt_cookie == <span class="keyword">TRUE</span>)</div><div class="line"></div><div class="line">&#123;</div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;CI-&gt;load-&gt;library(<span class="string">'encrypt'</span>);</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">// Are we using a database?  If so, load it</span></div><div class="line"></div><div class="line"><span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;sess_use_database === <span class="keyword">TRUE</span> <span class="keyword">AND</span> <span class="keyword">$this</span>-&gt;sess_table_name != <span class="string">''</span>)</div><div class="line"></div><div class="line">&#123;</div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;CI-&gt;load-&gt;database();</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">// Set the "now" time.  Can either be GMT or server time, based on the</span></div><div class="line"></div><div class="line"><span class="comment">// config prefs.  We use this to set the "last activity" time</span></div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;now = <span class="keyword">$this</span>-&gt;_get_time();</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">// Set the session length. If the session expiration is</span></div><div class="line"></div><div class="line"><span class="comment">// set to zero we'll set the expiration two years from now.</span></div><div class="line"></div><div class="line"><span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;sess_expiration == <span class="number">0</span>)</div><div class="line"></div><div class="line">&#123;</div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;sess_expiration = (<span class="number">60</span>*<span class="number">60</span>*<span class="number">24</span>*<span class="number">365</span>*<span class="number">2</span>);</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">// Set the cookie name</span></div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;sess_cookie_name = <span class="keyword">$this</span>-&gt;cookie_prefix.<span class="keyword">$this</span>-&gt;sess_cookie_name;</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">// Run the Session routine. If a session doesn't exist we'll</span></div><div class="line"></div><div class="line"><span class="comment">// create a new one.  If it does, we'll update it.</span></div><div class="line"></div><div class="line"><span class="keyword">if</span> ( ! <span class="keyword">$this</span>-&gt;sess_read())</div><div class="line"></div><div class="line">&#123;</div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;sess_create();</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">else</span></div><div class="line"></div><div class="line">&#123;</div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;sess_update();</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">// Delete 'old' flashdata (from last request)</span></div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;_flashdata_sweep();</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">// Mark all new flashdata as old (data will be deleted before next request)</span></div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;_flashdata_mark();</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">// Delete expired sessions if necessary</span></div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;_sess_gc();</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line">log_message(<span class="string">'debug'</span>, <span class="string">"Session routines successfully run"</span>);</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>简单的用大白话来说，这段代码就是用来做一些对Session 的初始工作，检测配置，检测cookie是否设置等，检测配置最后有这个函数_sess_gc().这是每次请求的时候都会运行到的。</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">_sess_gc</span><span class="params">()</span></span></div><div class="line"><span class="function"></span></div><div class="line"><span class="function"></span>&#123;</div><div class="line"></div><div class="line"><span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;sess_use_database != <span class="keyword">TRUE</span>)</div><div class="line"></div><div class="line">&#123;</div><div class="line"></div><div class="line"><span class="keyword">return</span>;</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line">srand(time());</div><div class="line"></div><div class="line"><span class="keyword">if</span> ((rand() % <span class="number">100</span>) &lt; <span class="keyword">$this</span>-&gt;gc_probability)</div><div class="line"></div><div class="line">&#123;</div><div class="line"></div><div class="line">$expire = <span class="keyword">$this</span>-&gt;now - <span class="keyword">$this</span>-&gt;sess_expiration;</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;CI-&gt;db-&gt;where(<span class="string">"last_activity &lt; &#123;$expire&#125;"</span>);</div><div class="line"></div><div class="line"><span class="keyword">$this</span>-&gt;CI-&gt;db-&gt;delete(<span class="keyword">$this</span>-&gt;sess_table_name);</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line">log_message(<span class="string">'debug'</span>, <span class="string">'Session garbage collection performed.'</span>);</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可以看到这里首先检测了是否开启了数据库储存session，如果开启就会以当前的时间设置一个种子。大家可能觉得没有什么问题</p>
+<p>首先我先介绍一下一个特性，我们在发送HTTP给PHP-CGI的时候</p>
+<p><img src="/old/2017/10/10/CodeIgniter-Vul/1046971727.png" alt="85D4315C-97CC-4B00-8857-BCD997B78171.png"></p>
+<p>这个请求对应的返回的时间戳，是php先生成的。</p>
+<p>假如当前是 10:00</p>
+<p>php代码是</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">echo</span> <span class="string">"start"</span>;</div><div class="line"></div><div class="line">sleep(<span class="number">5</span>);</div><div class="line"></div><div class="line"><span class="comment">//Insert some code.</span></div><div class="line"></div><div class="line"><span class="keyword">echo</span> <span class="string">"pause"</span>;</div><div class="line"></div><div class="line">sleep(<span class="number">10</span>)</div></pre></td></tr></table></figure>
+<p>大家可能觉得返回的时间戳是请求接受到的时间+处理的时间。10:15</p>
+<p>实际上应该就是请求接收到的时间。</p>
+<p>为什么我要说这个呢？</p>
+<p>因为CI的框架本身代码执行时间就是等于返回的时间戳的时间。所以在运行到</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">srand(time());</div></pre></td></tr></table></figure>
+<p>时候这里的time()就等于返回的时间戳。</p>
+<p>当种子设置为时间戳之后，之后所有的基于PRNG的函数全部变的可计算了。</p>
+<p>举个例子：</p>
+<p>FineCMS2.0.1有一个文件解压getshell漏洞</p>
+<p>详情可以看</p>
+<p>/bugs/wooyun-2010-064128</p>
+<p>这篇文章。</p>
+<p>官方的修复方案是将目录名称随机</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$temp = APP_ROOT.<span class="string">'cache/attack/'</span>.md5(uniqid().rand(<span class="number">0</span>, <span class="number">9999</span>)).<span class="string">'/'</span></div></pre></td></tr></table></figure>
+<p>让攻击者不可猜测，从而即使攻击者上传了shell之后，也找不到执行的目录。</p>
+<p>假设开启了数据库储存session选项之后。那么即使官方用了两个随机函数，一个加密函数，都变辣鸡。</p>
+<p>我们先来看uniqid()的php的内核源码</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div></pre></td><td class="code"><pre><div class="line">PHP_FUNCTION(uniqid)</div><div class="line"></div><div class="line">&#123;</div><div class="line"></div><div class="line"><span class="keyword">char</span> *prefix = <span class="string">""</span>;</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(__CYGWIN__)</span></div><div class="line"></div><div class="line">zend_bool more_entropy = <span class="number">1</span>;</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">else</span></span></div><div class="line"></div><div class="line">zend_bool more_entropy = <span class="number">0</span>;</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div><div class="line"></div><div class="line"><span class="keyword">char</span> *uniqid;</div><div class="line"></div><div class="line"><span class="keyword">int</span> sec, usec, prefix_len = <span class="number">0</span>;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">timeval</span> <span class="title">tv</span>;</span></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">if</span> (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, <span class="string">"|sb"</span>, &amp;prefix, &amp;prefix_len,</div><div class="line"></div><div class="line">&amp;more_entropy)) &#123;</div><div class="line"></div><div class="line"><span class="keyword">return</span>;</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">if</span> HAVE_USLEEP &amp;&amp; !defined(PHP_WIN32)</span></div><div class="line"></div><div class="line"><span class="keyword">if</span> (!more_entropy) &#123;</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(__CYGWIN__)</span></div><div class="line"></div><div class="line">php_error_docref(<span class="literal">NULL</span> TSRMLS_CC, E_WARNING, <span class="string">"You must use 'more entropy' under CYGWIN"</span>);</div><div class="line"></div><div class="line">RETURN_FALSE;</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">else</span></span></div><div class="line"></div><div class="line">usleep(<span class="number">1</span>);</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div><div class="line"></div><div class="line">gettimeofday((struct timeval *) &amp;tv, (struct timezone *) <span class="literal">NULL</span>);</div><div class="line"></div><div class="line">sec = (<span class="keyword">int</span>) tv.tv_sec;</div><div class="line"></div><div class="line">usec = (<span class="keyword">int</span>) (tv.tv_usec % <span class="number">0x100000</span>);</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">/* The max value usec can have is 0xF423F, so we use only five hex</span></div><div class="line"><span class="comment"></span></div><div class="line"><span class="comment">* digits for usecs.</span></div><div class="line"><span class="comment"></span></div><div class="line"><span class="comment">*/</span></div><div class="line"></div><div class="line"><span class="keyword">if</span> (more_entropy) &#123;</div><div class="line"></div><div class="line">spprintf(&amp;uniqid, <span class="number">0</span>, <span class="string">"%s%08x%05x%.8F"</span>, prefix, sec, usec, php_combined_lcg(TSRMLS_C) * <span class="number">10</span>);</div><div class="line"></div><div class="line">&#125; <span class="keyword">else</span> &#123;</div><div class="line"></div><div class="line">spprintf(&amp;uniqid, <span class="number">0</span>, <span class="string">"%s%08x%05x"</span>, prefix, sec, usec);</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line">RETURN_STRING(uniqid, <span class="number">0</span>);</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div><div class="line"></div><div class="line"><span class="comment">/* &#125;&#125;&#125; */</span></div></pre></td></tr></table></figure>
+<p>可以看到uniqid()在默认情况下会生成13位”随机”数字，实际上就是将当前的时间戳变为16进制，8位秒以上的16进制+5位微秒时间戳而已。呵呵没错，又是时间戳。</p>
+<p>那么这时候就会变成，13位里面我们可以确定8位,剩下5位是我们不可见的。</p>
+<p>然后rand()的值，我们知道了种子，可以列出到达这里的rand()的随机值［根据rand()调用的次数］</p>
+<p>那么md5(uniqid().rand(0,9999))</p>
+<p>这个加密方法，实际上就变成了跑5位数0-F字典的问题了。</p>
+<p>如果说框架没有问题，想跑出来这个这个目录个人电脑要进行上亿次的请求，这几乎不可能。但是当框架帮我们固定了随机数种子之后，一切都变得so easy。</p>
+<p>同理如果cookie生成，csrf生成用到了rand()函数，全部都会被击溃。</p>
+<p>千里之堤，溃于蚁穴。</p>
+<p>攻击者发送请求<br><img src="/old/2017/10/10/CodeIgniter-Vul/1046971727.png" alt="85D4315C-97CC-4B00-8857-BCD997B78171.png"></p>
+<p>根据服务器返回的时间，转为时间戳<br><img src="/old/2017/10/10/CodeIgniter-Vul/1380875732.png" alt="E51B8868-12C2-405F-8ED5-05F26BBEF52D.png"></p>
+<p>根据时间戳计算加密过后的目录</p>
+<p><img src="/old/2017/10/10/CodeIgniter-Vul/2410727766.png" alt="1CD3FE40-8187-4BFD-A37C-E3D5256C97F3.png"></p>
+<p>服务器上攻击者攻击之后生成的目录</p>
+<p><img src="/old/2017/10/10/CodeIgniter-Vul/1478495625.png" alt="F50ED45C-F8E9-447A-9ED2-49CBE8DCE5EF.png"></p>
+	  
+	</div>
+
+	<div>
+  	<center>
+	<div class="pagination">
+
+    
+    
+    <a href="/old/2017/10/10/FineCMS2-0-1后台GETSHELL/" type="button" class="btn btn-default"><i
+                class="fa fa-arrow-circle-o-left"></i> Prev</a>
+    
+
+    <a href="/old/" type="button" class="btn btn-default"><i class="fa fa-home"></i>Home</a>
+    
+    <a href="/old/2017/10/10/BR大逃杀/" type="button" class="btn btn-default ">Next<i
+                class="fa fa-arrow-circle-o-right"></i></a>
+    
+
+    
+</div>
+
+    </center>
+	</div>
+	
+	<!-- comment -->
+	
+<section id="comment">
+    <h2 class="title">Comments</h2>
+
+    
+    <div id="disqus_thread" class="ds-thread">
+        <script type="text/javascript">
+            /**
+             * RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+             * LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+             */
+                /*
+                 var disqus_config = function () {
+                 this.page.url = PAGE_URL; // Replace PAGE_URL with your page's canonical URL variable
+                 this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                 };
+                 */
+            (function() { // DON'T EDIT BELOW THIS LINE
+                var d = document, s = d.createElement('script');
+
+                s.src = '//lonelyrain-1.disqus.com/embed.js';
+
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="/old//disqus.com/?ref_noscript">comments powered by
+                Disqus.</a></noscript>
+    </div>
+    
+</section>
+
+
+	</div> <!-- col-md-9/col-md-12 -->
+		
+	
+	<div id="side_meta">
+		<div class="col-md-3" id="post_meta"> 
+
+	<!-- date -->
+	
+	<div class="meta-widget">
+	<i class="fa fa-clock-o"></i>
+	2017-10-10 
+	</div>
+	
+
+	<!-- categories -->
+    
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#categorys"><i class="fa fa-folder"></i></a>	
+    <ul id="categorys" class="tag_box list-unstyled collapse in">
+          
+  <li>
+    <li><a href="/old/categories/漏洞分析/">漏洞分析<span>13</span></a></li>
+  </li>
+
+    </ul>
+	</div>
+	
+
+	<!-- tags -->
+	
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#tags"><i class="fa fa-tags"></i></a>		  
+    <ul id="tags" class="tag_box list-unstyled collapse in">	  
+	    
+  <li><a href="/old/tags/PHP/">PHP<span>11</span></a></li> <li><a href="/old/tags/漏洞分析/">漏洞分析<span>12</span></a></li> <li><a href="/old/tags/伪随机数/">伪随机数<span>2</span></a></li> <li><a href="/old/tags/CodeIgniter/">CodeIgniter<span>2</span></a></li>
+    </ul>
+	</div>
+		
+
+	<!-- toc -->
+	<div class="meta-widget">
+	
+	   <a data-toggle="collapse" data-target="#toc"><i class="fa fa-bars"></i></a>
+	   <div id="toc" class="toc collapse in">
+		   <span class="toc-title">Contents</span>
+			
+		</div>
+	
+	</div>
+	
+    <hr>
+	
+</div><!-- col-md-3 -->
+
+	</div>
+		
+
+</div><!-- row -->
+
+<script type="text/javascript">
+var disqus_shortname = 'lonelyrain-1';
+(function(){
+  var dsq = document.createElement('script');
+  dsq.type = 'text/javascript';
+  dsq.async = true;
+  dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+}());
+</script>
+
+
+
+	</div>
+  </div>
+  <div class="container-narrow">
+  <footer> <p>
+  &copy; 2019 LonelyRain
+  
+</p>
+
+<script>
+  var disqus_shortname = 'lonelyrain-1';
+  
+  var disqus_url = 'http://cnlonelyrain.github.io/2017/10/10/CodeIgniter-Vul/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//go.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+ </footer>
+</div> <!-- container-narrow -->
+  
+
+
+  
+<a id="gotop" href="#">   
+  <span>⬆︎TOP</span>
+</a>
+
+<script src="/old/js/jquery.imagesloaded.min.js"></script>
+<script src="/old/js/gallery.js"></script>
+<script src="/old/js/bootstrap.min.js"></script>
+<script src="/old/js/main.js"></script>
+<script src="/old/js/search.js"></script> 
+
+
+<link rel="stylesheet" href="/old/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/old/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+
+   <script type="text/javascript">      
+     var search_path = "old/search.xml";
+	 if (search_path.length == 0) {
+	 	search_path = "old/search.xml";
+	 }
+	 var path = "/" + search_path;
+     searchFunc(path, 'local-search-input', 'local-search-result');
+   </script>
+
+</body>
+   </html>

@@ -1,0 +1,329 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="cache-control" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  
+  <title>网页游戏《BR大逃杀》一枚小0Day | \\Johnis.online\BLOG</title>
+  <meta name="author" content="LonelyRain">
+  
+  <meta name="description" content="呵呵，昨晚和初中同学叙旧，两个人无聊找了一款网页游戏BR大逃杀玩，今天把这个网页游戏下下来简单审计了一下源码。">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="网页游戏《BR大逃杀》一枚小0Day"/>
+  <meta property="og:site_name" content="\\Johnis.online\BLOG"/>
+
+  
+    <meta property="og:image" content=""/>
+  
+
+  
+  
+    <link href="/old/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/old/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/responsive.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/google-fonts.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="/old//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/old/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-70812759-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?cb5448498d7169c668b07c2b255d62c1";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+ <body>  
+  <nav id="main-nav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <button type="button" class="navbar-header navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+		<span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+	  <a class="navbar-brand" href="/old/">\\Johnis.online\BLOG</a>
+      <div class="collapse navbar-collapse nav-menu">
+		<ul class="nav navbar-nav">
+		  
+		  <li>
+			<a href="/old/archives" title="All the articles.">
+			  <i class=""></i>Archives
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/categories" title="All the categories.">
+			  <i class=""></i>Categories
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/tags" title="All the tags.">
+			  <i class=""></i>Tags
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/about" title="About me.">
+			  <i class=""></i>About
+			</a>
+		  </li>
+		  
+		</ul>
+      </div>
+    </div> <!-- container -->
+</nav>
+<div class="clearfix"></div>
+
+  <div class="container">
+  	<div class="content">
+    	 
+
+
+	
+		<div class="page-header">
+			<h1> 网页游戏《BR大逃杀》一枚小0Day</h1>
+		</div>
+	
+
+
+
+<div class="row post">
+	<!-- cols -->
+	
+	<div id="top_meta"></div>
+	<div class="col-md-9">
+	
+
+	<!-- content -->
+	<div class="mypage">		
+	  		
+
+	  <p>呵呵，昨晚和初中同学叙旧，两个人无聊找了一款网页游戏BR大逃杀玩，今天把这个网页游戏下下来简单审计了一下源码。</p>
+<a id="more"></a>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div></pre></td><td class="code"><pre><div class="line"><span class="meta">&lt;?php</span></div><div class="line">error_reporting(E_ERROR | E_WARNING | E_PARSE);</div><div class="line">set_magic_quotes_runtime(<span class="number">0</span>);</div><div class="line"><span class="comment">//ini_set('date.timezone','Asia/Shanghai');</span></div><div class="line">$now = time();</div><div class="line">define(<span class="string">'IN_GAME'</span>, <span class="keyword">TRUE</span>);</div><div class="line">define(<span class="string">'GAME_ROOT'</span>, substr(dirname(<span class="keyword">__FILE__</span>), <span class="number">0</span>, <span class="number">0</span>));</div><div class="line">define(<span class="string">'GAMENAME'</span>, <span class="string">'bra'</span>);</div><div class="line"><span class="keyword">if</span>(PHP_VERSION &lt; <span class="string">'4.3.0'</span>) &#123;</div><div class="line"><span class="keyword">exit</span>(<span class="string">'PHP version must &gt;= 4.3.0!'</span>);</div><div class="line">&#125;</div><div class="line"><span class="keyword">require_once</span> GAME_ROOT.<span class="string">'./include/global.func.php'</span>;</div><div class="line"><span class="keyword">require_once</span> GAME_ROOT.<span class="string">'./config.inc.php'</span>;</div><div class="line"></div><div class="line">extract(gaddslashes($_COOKIE));</div><div class="line">extract(gaddslashes($_POST));</div><div class="line">extract(gaddslashes($_GET));</div><div class="line"></div><div class="line"><span class="keyword">if</span>($attackevasive) &#123;</div><div class="line"><span class="keyword">include_once</span> GAME_ROOT.<span class="string">'./include/security.inc.php'</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">if</span>($gzipcompress &amp;&amp; function_exists(<span class="string">'ob_gzhandler'</span>) &amp;&amp; CURSCRIPT != <span class="string">'wap'</span>) &#123;</div><div class="line">ob_start(<span class="string">'ob_gzhandler'</span>);</div><div class="line">&#125; <span class="keyword">else</span> &#123;</div><div class="line">$gzipcompress = <span class="number">0</span>;</div><div class="line">ob_start();</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">require_once</span> GAME_ROOT.<span class="string">'./include/db_'</span>.$database.<span class="string">'.class.php'</span>;</div><div class="line">$db = <span class="keyword">new</span> dbstuff;</div><div class="line">$db-&gt;connect($dbhost, $dbuser, $dbpw, $dbname, $pconnect);</div><div class="line"><span class="keyword">unset</span>($dbhost, $dbuser, $dbpw, $dbname, $pconnect);</div><div class="line">$db-&gt;select_db($dbname);</div><div class="line"><span class="keyword">require_once</span> GAME_ROOT.<span class="string">'./gamedata/system.php'</span>;</div><div class="line"><span class="keyword">if</span>(!$username||!$password)&#123;</div><div class="line">gexit($_ERROR[<span class="string">'login_info'</span>],<span class="keyword">__file__</span>,<span class="keyword">__line__</span>);</div><div class="line">&#125;<span class="keyword">else</span>&#123;</div><div class="line"><span class="keyword">include_once</span> GAME_ROOT.<span class="string">'./gamedata/system.php'</span>;</div><div class="line"></div><div class="line"><span class="keyword">if</span>(getenv(<span class="string">'HTTP_CLIENT_IP'</span>) &amp;&amp; strcasecmp(getenv(<span class="string">'HTTP_CLIENT_IP'</span>), <span class="string">'unknown'</span>)) &#123;</div><div class="line">$onlineip = getenv(<span class="string">'HTTP_CLIENT_IP'</span>);</div><div class="line">&#125; <span class="keyword">elseif</span>(getenv(<span class="string">'HTTP_X_FORWARDED_FOR'</span>) &amp;&amp; strcasecmp(getenv(<span class="string">'HTTP_X_FORWARDED_FOR'</span>), <span class="string">'unknown'</span>)) &#123;</div><div class="line">$onlineip = getenv(<span class="string">'HTTP_X_FORWARDED_FOR'</span>);</div><div class="line">&#125; <span class="keyword">elseif</span>(getenv(<span class="string">'REMOTE_ADDR'</span>) &amp;&amp; strcasecmp(getenv(<span class="string">'REMOTE_ADDR'</span>), <span class="string">'unknown'</span>)) &#123;</div><div class="line">$onlineip = getenv(<span class="string">'REMOTE_ADDR'</span>);</div><div class="line">&#125; <span class="keyword">elseif</span>(<span class="keyword">isset</span>($_SERVER[<span class="string">'REMOTE_ADDR'</span>]) &amp;&amp; $_SERVER[<span class="string">'REMOTE_ADDR'</span>] &amp;&amp; strcasecmp($_SERVER[<span class="string">'REMOTE_ADDR'</span>], <span class="string">'unknown'</span>)) &#123;</div><div class="line">$onlineip = $_SERVER[<span class="string">'REMOTE_ADDR'</span>];</div><div class="line">&#125;</div><div class="line"></div><div class="line">$password = md5($password);</div><div class="line">$groupid = <span class="number">1</span>;</div><div class="line">$credits = <span class="number">0</span>;</div><div class="line">$gender = <span class="number">0</span>;</div><div class="line">$str = <span class="string">"SELECT * FROM &#123;$tablepre&#125;users WHERE username = '$username'"</span>;</div><div class="line">$result = $db-&gt;query(<span class="string">"SELECT * FROM &#123;$tablepre&#125;users WHERE username = '$username'"</span>);</div><div class="line"><span class="keyword">if</span>(!$db-&gt;num_rows($result)) &#123;</div><div class="line">$groupid = <span class="number">1</span>;</div><div class="line">$str = <span class="string">"INSERT INTO &#123;$tablepre&#125;users (username,`password`,groupid,ip,credits,gender) VALUES ('$username', '$password', '$groupid', '$onlineip', '$credits', '$gender')"</span>;</div><div class="line">$db-&gt;query(<span class="string">"INSERT INTO &#123;$tablepre&#125;users (username,`password`,groupid,ip,credits,gender) VALUES ('$username', '$password', '$groupid', '$onlineip', '$credits', '$gender')"</span>);</div><div class="line">&#125; <span class="keyword">else</span> &#123;</div><div class="line">$userdata = $db-&gt;fetch_array($result);</div><div class="line"><span class="keyword">if</span>($userdata[<span class="string">'groupid'</span>] &lt;= <span class="number">0</span>)&#123;</div><div class="line">gexit($_ERROR[<span class="string">'user_ban'</span>],<span class="keyword">__file__</span>,<span class="keyword">__line__</span>);</div><div class="line">&#125; <span class="keyword">elseif</span>($userdata[<span class="string">'password'</span>] != $password) &#123;</div><div class="line">gexit($_ERROR[<span class="string">'login_check'</span>],<span class="keyword">__file__</span>,<span class="keyword">__line__</span>);</div><div class="line">&#125; <span class="keyword">else</span> &#123;</div><div class="line"></div><div class="line">&#125;</div><div class="line">&#125;</div><div class="line">gsetcookie(<span class="string">'user'</span>,$username);</div><div class="line">gsetcookie(<span class="string">'pass'</span>,$password);</div><div class="line">&#125;</div><div class="line"></div><div class="line">Header(<span class="string">"Location: index.php"</span>);</div><div class="line"><span class="keyword">exit</span>();</div><div class="line"></div><div class="line"><span class="meta">?&gt;</span></div></pre></td></tr></table></figure>
+<p>以上这些是login.php的源码，程序员从15-17行进行了addslash()操作并且用了extract()函数解压出来，这两个函数都有相关的安全风险。<br>addslash()函数在数据库为gbk的条件下可以用宽字节注入，extract函数的话可以用数组进行变量覆盖（日常感谢黑哥等老一辈黑阔）</p>
+<p>看了一下下面进行sql查询的地方，因为数据库设置的是utf8格式的，所以暂时先放弃了宽字节注入的想法。</p>
+<p>接下来我发现下面的insert语句里面需要插入一个ip，根据以往的经验来看，php获取ip一共有3种方式，其中的2种方式都是有问题的。<br>使用X-Forward-For和HTTP_CLIENT_IP这两种都是客户端可以伪造的。<br>于是看一下ip是怎么取得的，获取ip的代码是如下：<br><figure class="highlight php"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span>(getenv(<span class="string">'HTTP_CLIENT_IP'</span>) &amp;&amp; strcasecmp(getenv(<span class="string">'HTTP_CLIENT_IP'</span>), <span class="string">'unknown'</span>)) &#123;</div><div class="line">$onlineip = getenv(<span class="string">'HTTP_CLIENT_IP'</span>);</div><div class="line">&#125; <span class="keyword">elseif</span>(getenv(<span class="string">'HTTP_X_FORWARDED_FOR'</span>) &amp;&amp; strcasecmp(getenv(<span class="string">'HTTP_X_FORWARDED_FOR'</span>), <span class="string">'unknown'</span>)) &#123;</div><div class="line">$onlineip = getenv(<span class="string">'HTTP_X_FORWARDED_FOR'</span>);</div><div class="line">&#125; <span class="keyword">elseif</span>(getenv(<span class="string">'REMOTE_ADDR'</span>) &amp;&amp; strcasecmp(getenv(<span class="string">'REMOTE_ADDR'</span>), <span class="string">'unknown'</span>)) &#123;</div><div class="line">$onlineip = getenv(<span class="string">'REMOTE_ADDR'</span>);</div><div class="line">&#125; <span class="keyword">elseif</span>(<span class="keyword">isset</span>($_SERVER[<span class="string">'REMOTE_ADDR'</span>]) &amp;&amp; $_SERVER[<span class="string">'REMOTE_ADDR'</span>] &amp;&amp; strcasecmp($_SERVER[<span class="string">'REMOTE_ADDR'</span>], <span class="string">'unknown'</span>)) &#123;</div><div class="line">$onlineip = $_SERVER[<span class="string">'REMOTE_ADDR'</span>];</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>个人觉得程序猿没有注意到获取顺序，应该是<code>$_SERVER[&#39;REMOTE_ADDR&#39;]</code>放在判断语句的第一个，不然就不会有下面的问题了。<br>上面那串代码获取了$onlineip，但要注意到$onlineip是从<code>$_SERVER</code>这个php的超全局变量获取的。程序开头只addslash了3个超全局变量，忽略了这个，所以下面insert语句是可以注入的。<br>所以接下来就可以用报错注入来注入了。<br><img src="/old/2017/10/10/BR大逃杀/2689502967.png" alt="F93EDEF9-CC09-479E-81F9-B5F70267FC74.png"><br><img src="/old/2017/10/10/BR大逃杀/2275247145.png" alt="66FF604A-1512-40CD-8858-E74C5ECA32CD.png"></p>
+	  
+	</div>
+
+	<div>
+  	<center>
+	<div class="pagination">
+
+    
+    
+    <a href="/old/2017/10/10/CodeIgniter-Vul/" type="button" class="btn btn-default"><i
+                class="fa fa-arrow-circle-o-left"></i> Prev</a>
+    
+
+    <a href="/old/" type="button" class="btn btn-default"><i class="fa fa-home"></i>Home</a>
+    
+    <a href="/old/2017/10/10/Curl类库解析url安全简读/" type="button" class="btn btn-default ">Next<i
+                class="fa fa-arrow-circle-o-right"></i></a>
+    
+
+    
+</div>
+
+    </center>
+	</div>
+	
+	<!-- comment -->
+	
+<section id="comment">
+    <h2 class="title">Comments</h2>
+
+    
+    <div id="disqus_thread" class="ds-thread">
+        <script type="text/javascript">
+            /**
+             * RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+             * LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+             */
+                /*
+                 var disqus_config = function () {
+                 this.page.url = PAGE_URL; // Replace PAGE_URL with your page's canonical URL variable
+                 this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                 };
+                 */
+            (function() { // DON'T EDIT BELOW THIS LINE
+                var d = document, s = d.createElement('script');
+
+                s.src = '//lonelyrain-1.disqus.com/embed.js';
+
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="/old//disqus.com/?ref_noscript">comments powered by
+                Disqus.</a></noscript>
+    </div>
+    
+</section>
+
+
+	</div> <!-- col-md-9/col-md-12 -->
+		
+	
+	<div id="side_meta">
+		<div class="col-md-3" id="post_meta"> 
+
+	<!-- date -->
+	
+	<div class="meta-widget">
+	<i class="fa fa-clock-o"></i>
+	2017-10-10 
+	</div>
+	
+
+	<!-- categories -->
+    
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#categorys"><i class="fa fa-folder"></i></a>	
+    <ul id="categorys" class="tag_box list-unstyled collapse in">
+          
+  <li>
+    <li><a href="/old/categories/漏洞分析/">漏洞分析<span>13</span></a></li>
+  </li>
+
+    </ul>
+	</div>
+	
+
+	<!-- tags -->
+	
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#tags"><i class="fa fa-tags"></i></a>		  
+    <ul id="tags" class="tag_box list-unstyled collapse in">	  
+	    
+  <li><a href="/old/tags/PHP/">PHP<span>11</span></a></li> <li><a href="/old/tags/漏洞分析/">漏洞分析<span>12</span></a></li> <li><a href="/old/tags/注入/">注入<span>1</span></a></li>
+    </ul>
+	</div>
+		
+
+	<!-- toc -->
+	<div class="meta-widget">
+	
+	   <a data-toggle="collapse" data-target="#toc"><i class="fa fa-bars"></i></a>
+	   <div id="toc" class="toc collapse in">
+		   <span class="toc-title">Contents</span>
+			
+		</div>
+	
+	</div>
+	
+    <hr>
+	
+</div><!-- col-md-3 -->
+
+	</div>
+		
+
+</div><!-- row -->
+
+<script type="text/javascript">
+var disqus_shortname = 'lonelyrain-1';
+(function(){
+  var dsq = document.createElement('script');
+  dsq.type = 'text/javascript';
+  dsq.async = true;
+  dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+}());
+</script>
+
+
+
+	</div>
+  </div>
+  <div class="container-narrow">
+  <footer> <p>
+  &copy; 2019 LonelyRain
+  
+</p>
+
+<script>
+  var disqus_shortname = 'lonelyrain-1';
+  
+  var disqus_url = 'http://cnlonelyrain.github.io/2017/10/10/BR大逃杀/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//go.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+ </footer>
+</div> <!-- container-narrow -->
+  
+
+
+  
+<a id="gotop" href="#">   
+  <span>⬆︎TOP</span>
+</a>
+
+<script src="/old/js/jquery.imagesloaded.min.js"></script>
+<script src="/old/js/gallery.js"></script>
+<script src="/old/js/bootstrap.min.js"></script>
+<script src="/old/js/main.js"></script>
+<script src="/old/js/search.js"></script> 
+
+
+<link rel="stylesheet" href="/old/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/old/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+
+   <script type="text/javascript">      
+     var search_path = "old/search.xml";
+	 if (search_path.length == 0) {
+	 	search_path = "old/search.xml";
+	 }
+	 var path = "/" + search_path;
+     searchFunc(path, 'local-search-input', 'local-search-result');
+   </script>
+
+</body>
+   </html>

@@ -1,0 +1,368 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="cache-control" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  
+  <title>活动目录以及域安全 | \\Johnis.online\BLOG</title>
+  <meta name="author" content="LonelyRain">
+  
+  <meta name="description" content="知己知彼，百战不殆-孙子
+前言一直以来在网上域渗透的资料，几乎专注的都是一些命令，以及一些工具的使用，但是缺乏对活动目录以及与域本身的安全的研究思考。">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="活动目录以及域安全"/>
+  <meta property="og:site_name" content="\\Johnis.online\BLOG"/>
+
+  
+    <meta property="og:image" content=""/>
+  
+
+  
+  
+    <link href="/old/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/old/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/responsive.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/google-fonts.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="/old//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/old/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-70812759-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?cb5448498d7169c668b07c2b255d62c1";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+ <body>  
+  <nav id="main-nav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <button type="button" class="navbar-header navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+		<span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+	  <a class="navbar-brand" href="/old/">\\Johnis.online\BLOG</a>
+      <div class="collapse navbar-collapse nav-menu">
+		<ul class="nav navbar-nav">
+		  
+		  <li>
+			<a href="/old/archives" title="All the articles.">
+			  <i class=""></i>Archives
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/categories" title="All the categories.">
+			  <i class=""></i>Categories
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/tags" title="All the tags.">
+			  <i class=""></i>Tags
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/about" title="About me.">
+			  <i class=""></i>About
+			</a>
+		  </li>
+		  
+		</ul>
+      </div>
+    </div> <!-- container -->
+</nav>
+<div class="clearfix"></div>
+
+  <div class="container">
+  	<div class="content">
+    	 
+
+
+	
+		<div class="page-header">
+			<h1> 活动目录以及域安全</h1>
+		</div>
+	
+
+
+
+<div class="row post">
+	<!-- cols -->
+	
+	<div id="top_meta"></div>
+	<div class="col-md-9">
+	
+
+	<!-- content -->
+	<div class="mypage">		
+	  		
+
+	  <p>知己知彼，百战不殆-孙子</p>
+<h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>一直以来在网上域渗透的资料，几乎专注的都是一些命令，以及一些工具的使用，但是缺乏对活动目录以及与域本身的安全的研究思考。</p>
+<a id="more"></a>
+<h3 id="导语"><a href="#导语" class="headerlink" title="导语"></a>导语</h3><p>当我们进入了内网，可能我们仅仅想要获取某台机器上的资料，如果能获取那台机器所在域的域控权限固然是最好不过的事情，但有时候并不能得偿所愿。</p>
+<p>当我们必须了解了活动目录的运转机制以及安全机制的情况下，才能更好的进行渗透的工作。</p>
+<h1 id="域"><a href="#域" class="headerlink" title="域"></a>域</h1><h2 id="基础知识"><a href="#基础知识" class="headerlink" title="基础知识"></a>基础知识</h2><h3 id="名词"><a href="#名词" class="headerlink" title="名词:"></a>名词:</h3><p>域控（Domain Controller），DC</p>
+<p>活动目录目录服务（Active Directory Directory Services），ADDS</p>
+<p>组织单位（Organizational Unit ）</p>
+<p>域（Domain）</p>
+<p>域树（Tree）</p>
+<p>域林（Forest）</p>
+<h3 id="1-什么是活动目录？"><a href="#1-什么是活动目录？" class="headerlink" title="1.什么是活动目录？"></a>1.什么是活动目录？</h3><p>活动目录是Windows Server在网络环境中提供的“资源目录”。活动目录是储存着域中相关资源信息的目录，例如计算机，用户组，数据库，服务器，打印机，用户属性（权限等），就像一个数据库。</p>
+<p><img src="/old/2017/10/10/域安全/2229391424.png" alt="DA67951C-17D7-45D1-907B-504CBE265682.png"></p>
+<p>图【1】：</p>
+<h3 id="2-什么是活动目录目录服务？"><a href="#2-什么是活动目录目录服务？" class="headerlink" title="2.什么是活动目录目录服务？"></a>2.什么是活动目录目录服务？</h3><p>“The Active Directory directory service is a distributed database that stores and manages information about network resources, as well as application-specific data from directory-enabled applications. Active Directory allows administrators to organize objects of a network (such as users, computers, and devices) into a hierarchical collection of containers known as the logical structure. The top-level logical container in this hierarchy is the forest. Within a forest are domain containers, and within domains are organizational units.”</p>
+<p>首先大家都知道目录，目录提供了文档内容的概览，可以使我们迅速找到一本书，字典中特定的章节。那么将这个概念应用于网络管理员管理服务器中。假设一个公司中有一千台服务器，管理员想要找到特定的服务器的话,一台一台的登陆，显然是极其低效率的方法。所以目录的理念同样适用在解决这种情况。</p>
+<p>ADDS提供给域管理一个集中管理的机制和架构。假设一个公司中有一千台服务器，管理员想要找到特定的服务器的话,一台一台的登陆，显然是极其低效率的方法。ADDS可以让域管理员对网络中的所有资源进行访问（登陆，读写等操作）我们可以将其理解为单点登录。</p>
+<p>活动目录目录服务提供的功能</p>
+<p>（1）提供单点登录访问服务器、服务器上指定的资源与应用程序。<br>（2）多播复制（Replicatiion）／／暂时不关心<br>（3）基于属性搜索 eg:基于文件名搜索<br>（4）基于分类搜索 eg:基于分类搜索</p>
+<h3 id="3-什么是域？"><a href="#3-什么是域？" class="headerlink" title="3.什么是域？"></a>3.什么是域？</h3><p>域是Windows Server 2008的核心单位</p>
+<p>我们来梳理一下 活动目录和域的关系：</p>
+<p>1.域是逻辑上的服务器以及PC的逻辑分组，在一个域里面的用户都使用公共的安全机制和账户信息。</p>
+<p>2.活动目录将域中的资源组织在一起，存放这些资源的各种信息。</p>
+<h3 id="4-什么是树（域树）？"><a href="#4-什么是树（域树）？" class="headerlink" title="4.什么是树（域树）？"></a>4.什么是树（域树）？</h3><p>“A domain tree is made up of several domains that share a common schema and configuration, forming a contiguous namespace. Domains in a tree are also linked together by trust relationships. Active Directory is a set of one or more trees.”</p>
+<p>根据上一条活动目录的作用，很容易理解树，活动目录拥有所有的域中机器账户以及配置。域树由多个域组成，这些域同时由根域DC管理，共享同一表结构和配置，形成一个连续的命名空间。</p>
+<p>举个例子，就像如果以it.Johnis.online为例，Johnis.online就是根域，it就是子域。因为是“父-子”关系，Johnis.online</p>
+<p>拥有it这个域的所有权限。</p>
+<h3 id="5-信任关系"><a href="#5-信任关系" class="headerlink" title="5.信任关系"></a>5.信任关系</h3><p>“A trust is a relationship, which you establish between domains, that makes it possible for users in one domain to be authenticated by a domain controller in the other domain.”</p>
+<p>信任关系这个字面意思很好理解，我就不多做解释了。</p>
+<p>关于域的信任关系，暂时我们只关心信任关系的方向问题。</p>
+<p>信任分为<strong>双向信任</strong>以及<strong>单向信任</strong>，两种信任关系字面上也很好理解。</p>
+<p>我们要重点关心的是活动目录中域树的默认信任关系，默认任何新加入域树中的域它的信任关系都是双向并且可传递的。</p>
+<p>##情景模拟</p>
+<p>举个例子：</p>
+<p>当我们的根域（Johnis.online）中有</p>
+<ul>
+<li>子域 it</li>
+<li>子域 workgroup</li>
+</ul>
+<p>由域林中默认的信任关系可知，it域与根域Johnis.online相互信任，workgroup域与根域Johnis.online相互信任。</p>
+<p><img src="/old/2017/10/10/域安全/3795199765.png" alt="8F8F7558-B362-405C-AA8A-7DEBD2D16020.png"></p>
+<p>所以通过信任关系的可传递性，it域默认信任workgroup域。</p>
+<p>那么我们考虑这么一种情况，IT域本身的各种对外服务（例如：web）默认它为非常安全，我们并没有办法拿下它的权限。</p>
+<p>it域的管理员为了方便，在他管理的it域中，将其中一台（10.11.47.70）开启web服务的wwwroot文件目录权限设置为了</p>
+<p>everyone，在其it域的用户都可以看见这个文件目录。这个做法讲道理是没有问题的，因为我们假设it域本身很安全，它对dmz内的机器以及账户共享这些资料。</p>
+<p><img src="/old/2017/10/10/域安全/3867516861.png" alt="8B490D0D-85B4-40F2-A7DE-9E9E8C9D2BDD.png"></p>
+<p>假设我们拿下了workgroup域中的一台服务器（192.168.2.3）的一个普通用户的账号commonuser，而且并没有拿到workgroup域控（DC）。</p>
+<p>其实我们是可以通过这个普通权限的workgroup的域普通账号commonuser去访问it域中10.11.47.70这台的wwwroot的文件（默认只有读取权限），从而可以做代码审计之类的工作去突破it域的防护。</p>
+<p><img src="/old/2017/10/10/域安全/2910418980.png" alt="81D0833C-3CBB-4793-B71B-B868E2D1D99E.png"></p>
+<p>“by the way：为什么我觉得管理员会用everyone呢？因为你们可以观察前一副图，微软把everyone默认设为第一个选项，直接选的确很方便”</p>
+<p>Reference：<br>《Windwos Server 2008安全技术详解》<br>微软技术参考网站：<a href="https://support.microsoft.com" target="_blank" rel="external">https://support.microsoft.com</a></p>
+	  
+	</div>
+
+	<div>
+  	<center>
+	<div class="pagination">
+
+    
+    
+    <a href="/old/2017/12/05/寄存器及其相关/" type="button" class="btn btn-default"><i
+                class="fa fa-arrow-circle-o-left"></i> Prev</a>
+    
+
+    <a href="/old/" type="button" class="btn btn-default"><i class="fa fa-home"></i>Home</a>
+    
+    <a href="/old/2017/10/10/raindrop/" type="button" class="btn btn-default ">Next<i
+                class="fa fa-arrow-circle-o-right"></i></a>
+    
+
+    
+</div>
+
+    </center>
+	</div>
+	
+	<!-- comment -->
+	
+<section id="comment">
+    <h2 class="title">Comments</h2>
+
+    
+    <div id="disqus_thread" class="ds-thread">
+        <script type="text/javascript">
+            /**
+             * RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+             * LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+             */
+                /*
+                 var disqus_config = function () {
+                 this.page.url = PAGE_URL; // Replace PAGE_URL with your page's canonical URL variable
+                 this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                 };
+                 */
+            (function() { // DON'T EDIT BELOW THIS LINE
+                var d = document, s = d.createElement('script');
+
+                s.src = '//lonelyrain-1.disqus.com/embed.js';
+
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="/old//disqus.com/?ref_noscript">comments powered by
+                Disqus.</a></noscript>
+    </div>
+    
+</section>
+
+
+	</div> <!-- col-md-9/col-md-12 -->
+		
+	
+	<div id="side_meta">
+		<div class="col-md-3" id="post_meta"> 
+
+	<!-- date -->
+	
+	<div class="meta-widget">
+	<i class="fa fa-clock-o"></i>
+	2017-10-10 
+	</div>
+	
+
+	<!-- categories -->
+    
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#categorys"><i class="fa fa-folder"></i></a>	
+    <ul id="categorys" class="tag_box list-unstyled collapse in">
+          
+  <li>
+    <li><a href="/old/categories/安全研究/">安全研究<span>2</span></a></li>
+  </li>
+
+    </ul>
+	</div>
+	
+
+	<!-- tags -->
+	
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#tags"><i class="fa fa-tags"></i></a>		  
+    <ul id="tags" class="tag_box list-unstyled collapse in">	  
+	    
+  <li><a href="/old/tags/域安全/">域安全<span>1</span></a></li> <li><a href="/old/tags/域控/">域控<span>1</span></a></li>
+    </ul>
+	</div>
+		
+
+	<!-- toc -->
+	<div class="meta-widget">
+	
+	</div>
+	
+    <hr>
+	
+</div><!-- col-md-3 -->
+
+	</div>
+		
+
+</div><!-- row -->
+
+<script type="text/javascript">
+var disqus_shortname = 'lonelyrain-1';
+(function(){
+  var dsq = document.createElement('script');
+  dsq.type = 'text/javascript';
+  dsq.async = true;
+  dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+}());
+</script>
+
+
+
+	</div>
+  </div>
+  <div class="container-narrow">
+  <footer> <p>
+  &copy; 2019 LonelyRain
+  
+</p>
+
+<script>
+  var disqus_shortname = 'lonelyrain-1';
+  
+  var disqus_url = 'http://cnlonelyrain.github.io/2017/10/10/域安全/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//go.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+ </footer>
+</div> <!-- container-narrow -->
+  
+
+
+  
+<a id="gotop" href="#">   
+  <span>⬆︎TOP</span>
+</a>
+
+<script src="/old/js/jquery.imagesloaded.min.js"></script>
+<script src="/old/js/gallery.js"></script>
+<script src="/old/js/bootstrap.min.js"></script>
+<script src="/old/js/main.js"></script>
+<script src="/old/js/search.js"></script> 
+
+
+<link rel="stylesheet" href="/old/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/old/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+
+   <script type="text/javascript">      
+     var search_path = "old/search.xml";
+	 if (search_path.length == 0) {
+	 	search_path = "old/search.xml";
+	 }
+	 var path = "/" + search_path;
+     searchFunc(path, 'local-search-input', 'local-search-result');
+   </script>
+
+</body>
+   </html>

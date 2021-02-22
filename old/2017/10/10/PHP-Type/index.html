@@ -1,0 +1,345 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="cache-control" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  
+  <title>从PHP源代码学习PHP--PHP类型 | \\Johnis.online\BLOG</title>
+  <meta name="author" content="LonelyRain">
+  
+  <meta name="description" content="PHP类型PHP类型基础知识PHP是弱类型语言(依照laruence的说法是一种中强类型语言)
+所谓的弱类型就是在申明一个变量的时候，并不需要显式指明它保存的数据的类型,在程序执行的过程中可以根据需求动态的改变变量的类型.
+那PHP是如何实现这个功能的呢?
+首先PHP定义了一个保存变量的结构体(C语言)
+123456789101112131415161718192021typedef struct _zval_struct zval;typedef union _zvalue_value &amp;#123;long lval;                    /* long value */double dval;                /* double value */struct &amp;#123;char *val;int len;&amp;#125; str;HashTable *ht;                /* hash table value */zend_object_value obj;zend_ast *ast;&amp;#125; zvalue_value;struct _zval_struct &amp;#123;/* Variable information */zvalue_value value;        /* value */zend_uint refcount__gc;   /* PHP的内存回收机制需要这个值,现在我们并不需要对它特别关注 */zend_uchar type;    /* active type */zend_uchar is_ref__gc;&amp;#125;;">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="从PHP源代码学习PHP--PHP类型"/>
+  <meta property="og:site_name" content="\\Johnis.online\BLOG"/>
+
+  
+    <meta property="og:image" content=""/>
+  
+
+  
+  
+    <link href="/old/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/old/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/responsive.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/old/css/google-fonts.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="/old//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/old/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-70812759-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?cb5448498d7169c668b07c2b255d62c1";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+ <body>  
+  <nav id="main-nav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <button type="button" class="navbar-header navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+		<span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+	  <a class="navbar-brand" href="/old/">\\Johnis.online\BLOG</a>
+      <div class="collapse navbar-collapse nav-menu">
+		<ul class="nav navbar-nav">
+		  
+		  <li>
+			<a href="/old/archives" title="All the articles.">
+			  <i class=""></i>Archives
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/categories" title="All the categories.">
+			  <i class=""></i>Categories
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/tags" title="All the tags.">
+			  <i class=""></i>Tags
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/old/about" title="About me.">
+			  <i class=""></i>About
+			</a>
+		  </li>
+		  
+		</ul>
+      </div>
+    </div> <!-- container -->
+</nav>
+<div class="clearfix"></div>
+
+  <div class="container">
+  	<div class="content">
+    	 
+
+
+	
+		<div class="page-header">
+			<h1> 从PHP源代码学习PHP--PHP类型</h1>
+		</div>
+	
+
+
+
+<div class="row post">
+	<!-- cols -->
+	
+	<div id="top_meta"></div>
+	<div class="col-md-9">
+	
+
+	<!-- content -->
+	<div class="mypage">		
+	  		
+
+	  <h1 id="PHP类型"><a href="#PHP类型" class="headerlink" title="PHP类型"></a>PHP类型</h1><h2 id="PHP类型基础知识"><a href="#PHP类型基础知识" class="headerlink" title="PHP类型基础知识"></a>PHP类型基础知识</h2><p>PHP是弱类型语言(依照laruence的说法是一种中强类型语言)</p>
+<p>所谓的弱类型就是在申明一个变量的时候，并不需要显式指明它保存的数据的类型,在程序执行的过程中可以根据需求动态的改变变量的类型.</p>
+<p>那PHP是如何实现这个功能的呢?</p>
+<p>首先PHP定义了一个保存变量的结构体(C语言)</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> _<span class="title">zval_struct</span> <span class="title">zval</span>;</span></div><div class="line"></div><div class="line"><span class="keyword">typedef</span> <span class="keyword">union</span> _zvalue_value &#123;</div><div class="line"><span class="keyword">long</span> lval;                    <span class="comment">/* long value */</span></div><div class="line"><span class="keyword">double</span> dval;                <span class="comment">/* double value */</span></div><div class="line"><span class="class"><span class="keyword">struct</span> &#123;</span></div><div class="line"><span class="keyword">char</span> *val;</div><div class="line"><span class="keyword">int</span> len;</div><div class="line">&#125; str;</div><div class="line">HashTable *ht;                <span class="comment">/* hash table value */</span></div><div class="line">zend_object_value obj;</div><div class="line">zend_ast *ast;</div><div class="line">&#125; zvalue_value;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">zval_struct</span> &#123;</span></div><div class="line"><span class="comment">/* Variable information */</span></div><div class="line">zvalue_value value;        <span class="comment">/* value */</span></div><div class="line">zend_uint refcount__gc;   <span class="comment">/* PHP的内存回收机制需要这个值,现在我们并不需要对它特别关注 */</span></div><div class="line">zend_uchar type;    <span class="comment">/* active type */</span></div><div class="line">zend_uchar is_ref__gc;</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<a id="more"></a>
+<p>保存变量的地方是<code>_zvalue_value</code>,<code>_zvalue_value</code>定义了一个联合体①来储存用户输入的变量</p>
+<p><code>_zvalue_value</code>可以把内存中的值相对应的解释为<code>long</code>、<code>double</code>、<code>str</code>等类型,比较特殊的有三种<code>HashTable *ht（数组）</code>、<code>obj(对象)</code>和<code>*ast(资源)</code></p>
+<p>这个变量是什么类型由<code>zend_uchar type;    /* active type */</code>决定,</p>
+<p><code>type</code>的种类在<strong>Zend/zend.h:583-601</strong>中定义.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line">/* data types */</div><div class="line">/* All data types &lt;= IS_BOOL have their constructor/destructors skipped */</div><div class="line">#define IS_NULL        0</div><div class="line">#define IS_LONG        1</div><div class="line">#define IS_DOUBLE    2</div><div class="line">#define IS_BOOL        3</div><div class="line">#define IS_ARRAY    4</div><div class="line">#define IS_OBJECT    5</div><div class="line">#define IS_STRING    6</div><div class="line">#define IS_RESOURCE    7</div><div class="line">#define IS_CONSTANT    8</div><div class="line">#define IS_CONSTANT_AST    9</div><div class="line">#define IS_CALLABLE    10</div><div class="line"></div><div class="line">#define IS_CONSTANT_TYPE_MASK        0x00f</div><div class="line">#define IS_CONSTANT_UNQUALIFIED        0x010</div><div class="line">#define IS_LEXICAL_VAR                0x020</div><div class="line">#define IS_LEXICAL_REF                0x040</div><div class="line">#define IS_CONSTANT_IN_NAMESPACE    0x100</div><div class="line"></div><div class="line">#define IS_CONSTANT_TYPE(type) (((type) &amp; IS_CONSTANT_TYPE_MASK) &gt;= IS_CONSTANT &amp;&amp; ((type) &amp; IS_CONSTANT_TYPE_MASK) &lt;= IS_CONSTANT_AST)</div></pre></td></tr></table></figure>
+<p>PHP中实现转换就是当<code>zval.type = IS_LONG</code>是,就把结构体里的<code>value</code>转换成<code>long</code>型,当<code>zval.type = IS_STRING</code>时,就把结构体里面的<code>value</code>转换成<code>str</code>类型</p>
+<p>明白了以上基础知识就可以来探究<code>zval.type</code>会在哪些场景带来哪些问题了.</p>
+<hr>
+<p>①为什么要用联合体呢?</p>
+<p>在<code>K&amp;R</code>的<code>&lt;&lt;Pointer on C&gt;&gt;</code>中我们可以翻阅到这么一段文字</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">联合的声明和结构类似,但它的行为方式却和结构不同.联合的所有成员引用的是内存中相同的位置.当你想在不同的时刻把不同的东西储存在同一个位置的时候,就可以使用联合.</div></pre></td></tr></table></figure>
+<p>联合体可以用来动态的表示同一个内存中的值的类型.假如使用<code>结构体</code>来储存用户输入地变量的话,那么假设用户输入了<code>1</code>,如果想要把<code>1</code>以<code>char</code>,<code>int</code>,<code>double</code>等等来表示的话,就会成倍的增加内存占用.</p>
+<hr>
+	  
+	</div>
+
+	<div>
+  	<center>
+	<div class="pagination">
+
+    
+    
+    <a href="/old/2017/10/10/WordPress-Vul-1/" type="button" class="btn btn-default"><i
+                class="fa fa-arrow-circle-o-left"></i> Prev</a>
+    
+
+    <a href="/old/" type="button" class="btn btn-default"><i class="fa fa-home"></i>Home</a>
+    
+    <a href="/old/2017/10/10/ImageMagick2/" type="button" class="btn btn-default ">Next<i
+                class="fa fa-arrow-circle-o-right"></i></a>
+    
+
+    
+</div>
+
+    </center>
+	</div>
+	
+	<!-- comment -->
+	
+<section id="comment">
+    <h2 class="title">Comments</h2>
+
+    
+    <div id="disqus_thread" class="ds-thread">
+        <script type="text/javascript">
+            /**
+             * RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+             * LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+             */
+                /*
+                 var disqus_config = function () {
+                 this.page.url = PAGE_URL; // Replace PAGE_URL with your page's canonical URL variable
+                 this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                 };
+                 */
+            (function() { // DON'T EDIT BELOW THIS LINE
+                var d = document, s = d.createElement('script');
+
+                s.src = '//lonelyrain-1.disqus.com/embed.js';
+
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="/old//disqus.com/?ref_noscript">comments powered by
+                Disqus.</a></noscript>
+    </div>
+    
+</section>
+
+
+	</div> <!-- col-md-9/col-md-12 -->
+		
+	
+	<div id="side_meta">
+		<div class="col-md-3" id="post_meta"> 
+
+	<!-- date -->
+	
+	<div class="meta-widget">
+	<i class="fa fa-clock-o"></i>
+	2017-10-10 
+	</div>
+	
+
+	<!-- categories -->
+    
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#categorys"><i class="fa fa-folder"></i></a>	
+    <ul id="categorys" class="tag_box list-unstyled collapse in">
+          
+  <li>
+    <li><a href="/old/categories/源码分析/">源码分析<span>3</span></a></li>
+  </li>
+
+    </ul>
+	</div>
+	
+
+	<!-- tags -->
+	
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#tags"><i class="fa fa-tags"></i></a>		  
+    <ul id="tags" class="tag_box list-unstyled collapse in">	  
+	    
+  <li><a href="/old/tags/PHP/">PHP<span>11</span></a></li> <li><a href="/old/tags/源码分析/">源码分析<span>1</span></a></li>
+    </ul>
+	</div>
+		
+
+	<!-- toc -->
+	<div class="meta-widget">
+	
+	   <a data-toggle="collapse" data-target="#toc"><i class="fa fa-bars"></i></a>
+	   <div id="toc" class="toc collapse in">
+		   <span class="toc-title">Contents</span>
+			<ol class="toc-article"><li class="toc-article-item toc-article-level-1"><a class="toc-article-link" href="#PHP类型"><span class="toc-article-text">PHP类型</span></a><ol class="toc-article-child"><li class="toc-article-item toc-article-level-2"><a class="toc-article-link" href="#PHP类型基础知识"><span class="toc-article-text">PHP类型基础知识</span></a></li></ol></li></ol>
+		</div>
+	
+	</div>
+	
+    <hr>
+	
+</div><!-- col-md-3 -->
+
+	</div>
+		
+
+</div><!-- row -->
+
+<script type="text/javascript">
+var disqus_shortname = 'lonelyrain-1';
+(function(){
+  var dsq = document.createElement('script');
+  dsq.type = 'text/javascript';
+  dsq.async = true;
+  dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+}());
+</script>
+
+
+
+	</div>
+  </div>
+  <div class="container-narrow">
+  <footer> <p>
+  &copy; 2019 LonelyRain
+  
+</p>
+
+<script>
+  var disqus_shortname = 'lonelyrain-1';
+  
+  var disqus_url = 'http://cnlonelyrain.github.io/2017/10/10/PHP-Type/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//go.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+ </footer>
+</div> <!-- container-narrow -->
+  
+
+
+  
+<a id="gotop" href="#">   
+  <span>⬆︎TOP</span>
+</a>
+
+<script src="/old/js/jquery.imagesloaded.min.js"></script>
+<script src="/old/js/gallery.js"></script>
+<script src="/old/js/bootstrap.min.js"></script>
+<script src="/old/js/main.js"></script>
+<script src="/old/js/search.js"></script> 
+
+
+<link rel="stylesheet" href="/old/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/old/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+
+   <script type="text/javascript">      
+     var search_path = "old/search.xml";
+	 if (search_path.length == 0) {
+	 	search_path = "old/search.xml";
+	 }
+	 var path = "/" + search_path;
+     searchFunc(path, 'local-search-input', 'local-search-result');
+   </script>
+
+</body>
+   </html>
